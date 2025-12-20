@@ -1,0 +1,210 @@
+// src/lib/api/axios-client.ts
+
+import axios, {
+    AxiosError,
+    AxiosInstance,
+    AxiosResponse,
+    InternalAxiosRequestConfig,
+} from 'axios';
+
+export interface ApiErrorResponse {
+    error?: string;
+    message?: string;
+    detail?: string;
+    errors?: Record<string, string[]>;
+    code?: string;
+    status?: number;
+};
+
+// Parsed error with user-friendly message
+export interface ParsedApiError { 
+    message: string;
+    code: string;
+    status: number;
+    fieldErrors: Record<string, string[]>;
+    isNetworkError: boolean;
+    isServerError: boolean;
+    isClientError: boolean;
+    raw: AxiosError<ApiErrorResponse>;
+};
+
+
+function getBaseUrl(): string { 
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    if (envUrl) { 
+        return envUrl.replace(/\/$/, ''); // Remove trailing slashes
+    };
+
+    return 'http://localhost:8000/api/v1';
+};
+
+const DEFAULT_TIMEOUT = 30000;
+export const UPLOAD_TIMEOUT = 5 * 60 * 1000;
+
+
+// Extract the most appropriate error message from various error formats
+function extractErrorMessage(data: ApiErrorResponse | undefined): string { 
+    if (!data) return 'An unknown error occurred.';
+
+    if (data.message) return data.message;
+    if (data.detail) return data.detail;
+    if (data.error) return data.error;
+
+    if (data.errors && Object.keys(data.errors).length > 0) { 
+        const firstField = Object.keys(data.errors)[0];
+        const firstError = data.errors[firstField]?.[0];
+        if (firstError) {
+            return `${firstField}: ${firstError}`;
+        }
+    };
+
+    return 'An unknown error occurred.';
+};
+
+
+// Extract field-level validation errors
+function extractFieldErrors(
+  data: ApiErrorResponse | undefined
+): Record<string, string[]> {
+  if (!data?.errors) {
+    return {};
+  }
+  return data.errors;
+};
+
+
+// Parse the Axios error into a structured format
+export function parseApiError(error: AxiosError<ApiErrorResponse>): ParsedApiError { 
+    const status = error.response?.status ?? 0;
+    const data = error.response?.data;
+
+    return {
+        message: extractErrorMessage(data),
+        code: data?.code ?? error.code ?? 'UNKNOWN_ERROR',
+        status,
+        fieldErrors: extractFieldErrors(data),
+        isNetworkError: !error.response && error.code === 'ERR_NETWORK',
+        isServerError: status >= 500,
+        isClientError: status >= 400 && status < 500,
+        raw: error,
+    };
+};
+
+
+export function isAxiosError(
+  error: unknown
+): error is AxiosError<ApiErrorResponse> {
+  return axios.isAxiosError(error);
+};
+
+
+// Get a user-friendly error message from aby error
+export function getErrorMessage(error: unknown): string { 
+    if (isAxiosError(error)) {
+        const parsed = parseApiError(error);
+
+        switch (parsed.status) {
+          case 0:
+            return "Unable to connect to the server. Please check your internet connection.";
+          case 400:
+            return (
+              parsed.message || "Invalid request. Please check your input."
+            );
+          case 401:
+            return "Your session has expired. Please refresh the page.";
+          case 403:
+            return "You do not have permission to perform this action.";
+          case 404:
+            return "The requested resource was not found.";
+          case 408:
+            return "The request timed out. Please try again.";
+          case 413:
+            return "The file is too large to upload.";
+          case 429:
+            return "Too many requests. Please wait a moment and try again.";
+          case 500:
+            return "A server error occurred. Please try again later.";
+          case 502:
+          case 503:
+          case 504:
+            return "The service is temporarily unavailable. Please try again later.";
+          default:
+            return parsed.message;
+        };
+    };
+
+    if (error instanceof Error) { 
+        return error.message;
+    };
+
+    return 'An unexpected error occurred';
+};
+
+
+// Create and configure the Axios instance
+function createAxiosClient(): AxiosInstance { 
+    const client = axios.create({
+        baseURL: getBaseUrl(),
+        timeout: DEFAULT_TIMEOUT,
+        withCredentials: true,
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+    });
+
+    client.interceptors.request.use(
+        (config: InternalAxiosRequestConfig) => {
+            if (config.data instanceof FormData) {
+                delete config.headers['Content-Type'];
+            };
+
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+            };
+
+            return config;
+        },
+        (error: AxiosError) => {
+            if (process.env.NODE_ENV === 'development') {
+                console.error('[API] Request error:', error.message);
+            };
+            return Promise.reject(error);
+        }
+    );
+
+    client.interceptors.response.use(
+        (response: AxiosResponse) => {
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[API] Response ${response.status} from ${response.config.url}`);
+            }
+            return response;
+        },
+        (error: AxiosError<ApiErrorResponse>) => {
+            if (process.env.NODE_ENV === 'development') {
+                console.error("[API] Response Error:", {
+                    url: error.config?.url,
+                    status: error.response?.status,
+                    message: error.message,
+                    data: error.response?.data,
+                });
+            };
+
+            if (error.code === 'ECONNABORTED') {
+                console.error('[API] Request timed out:', error.config?.url);
+            };
+
+            if (error.code === 'ERR_NETWORK') {
+                console.error('[API] Network error - server may be down')
+            };
+
+            return Promise.reject(error);
+        }
+    );
+
+    return client;
+};
+
+
+export const apiClient = createAxiosClient();
