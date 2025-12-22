@@ -3,46 +3,46 @@
 import type { MediaType, ParameterType, Nullable } from "./common-types";
 
 // Parameter schema types
-export interface ParameterSchemaBase { 
-    param_name: string;
-    type: ParameterType;
-    required: boolean;
-    description: string;
-    default?: unknown;
-    min?: Nullable<number>;
-    max?: Nullable<number>;
-    choices?: Nullable<string[]>;
-};
+export interface ParameterSchemaBase {
+  param_name: string;
+  type: ParameterType;
+  required: boolean;
+  description: string;
+  default?: unknown;
+  min?: Nullable<number>;
+  max?: Nullable<number>;
+  choices?: Nullable<string[]>;
+}
 
-export interface IntegerParameterSchema extends ParameterSchemaBase { 
-    type: 'integer';
-    default?: number;
-    min?: Nullable<number>;
-    max?: Nullable<number>;
-};
+export interface IntegerParameterSchema extends ParameterSchemaBase {
+  type: "integer";
+  default?: number;
+  min?: Nullable<number>;
+  max?: Nullable<number>;
+}
 
 export interface FloatParameterSchema extends ParameterSchemaBase {
   type: "float";
   default?: number;
   min?: Nullable<number>;
   max?: Nullable<number>;
-};
+}
 
 export interface StringParameterSchema extends ParameterSchemaBase {
   type: "string";
   default?: string;
-};
+}
 
 export interface BooleanParameterSchema extends ParameterSchemaBase {
   type: "boolean";
   default?: boolean;
-};
+}
 
 export interface ChoiceParameterSchema extends ParameterSchemaBase {
   type: "choice";
   default?: string;
   choices: string[];
-};
+}
 
 export type ParameterSchema =
   | IntegerParameterSchema
@@ -50,7 +50,6 @@ export type ParameterSchema =
   | StringParameterSchema
   | BooleanParameterSchema
   | ChoiceParameterSchema;
-  
 
 // Operation Definition types
 
@@ -61,13 +60,13 @@ export interface OperationDefinition {
   parameters: ParameterSchema[];
   input_formats: string[];
   output_formats: string[];
-};
+}
 
 export interface OperationDefinitionListItem {
   operation_name: string;
   media_type: MediaType;
-  description: string
-};
+  description: string;
+}
 
 // Grouped operations
 
@@ -75,22 +74,22 @@ export interface GroupedOperations {
   video: OperationDefinition[];
   image: OperationDefinition[];
   audio: OperationDefinition[];
-};
+}
 
 export function groupOperationsByMediaType(
   operations: OperationDefinition[]
-): GroupedOperations { 
+): GroupedOperations {
   return {
-    video: operations.filter(op => op.media_type === 'video'),
-    image: operations.filter(op => op.media_type === 'image'),
-    audio: operations.filter(op => op.media_type === 'audio'),
+    video: operations.filter((op) => op.media_type === "video"),
+    image: operations.filter((op) => op.media_type === "image"),
+    audio: operations.filter((op) => op.media_type === "audio"),
   };
-};
+}
 
 // Parameter helpers
 
-export function getParameterDefault(param: ParameterSchema): unknown { 
-  if (param.default !== undefined) { 
+export function getParameterDefault(param: ParameterSchema): unknown {
+  if (param.default !== undefined) {
     return param.default;
   }
 
@@ -107,15 +106,21 @@ export function getParameterDefault(param: ParameterSchema): unknown {
       return param.choices?.[0] ?? "";
     default:
       return undefined;
-  };
-};
+  }
+}
 
 export function buildDefaultParameters(
   operation: OperationDefinition
 ): Record<string, unknown> {
   const defaults: Record<string, unknown> = {};
 
-  for (const param of operation.parameters) {
+  // Defensive check: ensure parameters is an array
+  const parameters = operation.parameters;
+  if (!Array.isArray(parameters)) {
+    return defaults;
+  }
+
+  for (const param of parameters) {
     const defaultValue = getParameterDefault(param);
     if (defaultValue !== undefined) {
       defaults[param.param_name] = defaultValue;
@@ -123,33 +128,36 @@ export function buildDefaultParameters(
   }
 
   return defaults;
-};
+}
 
 export function isNumericParameter(
   param: ParameterSchema
 ): param is IntegerParameterSchema | FloatParameterSchema {
   return param.type === "integer" || param.type === "float";
-};
+}
 
 export function hasRangeConstraints(param: ParameterSchema): boolean {
   if (!isNumericParameter(param)) return false;
   return param.min !== null || param.max !== null;
-};
+}
 
 export function validateParameter(
   param: ParameterSchema,
   value: unknown
-): { valid: boolean; error?: string } { 
-  if (param.required && (value === undefined || value === null || value === '')) { 
+): { valid: boolean; error?: string } {
+  if (
+    param.required &&
+    (value === undefined || value === null || value === "")
+  ) {
     return { valid: false, error: `${param.param_name} is required` };
-  };
+  }
 
   if (
     !param.required &&
     (value === undefined || value === null || value === "")
   ) {
     return { valid: true };
-  };
+  }
 
   switch (param.type) {
     case "integer": {
@@ -210,47 +218,79 @@ export function validateParameter(
       }
       break;
     }
-    
-    case 'boolean': {
-      if (typeof value !== 'boolean') {
-        return { valid: false, error: `${param.param_name} must be true or false` };
+
+    case "boolean": {
+      if (typeof value !== "boolean") {
+        return {
+          valid: false,
+          error: `${param.param_name} must be true or false`,
+        };
       }
       break;
     }
-    
-    case 'choice': {
+
+    case "choice": {
       if (param.choices && !param.choices.includes(String(value))) {
-        return { valid: false, error: `${param.param_name} must be one of: ${param.choices.join(', ')}` };
+        return {
+          valid: false,
+          error: `${param.param_name} must be one of: ${param.choices.join(
+            ", "
+          )}`,
+        };
       }
       break;
     }
-    
-    case 'string': {
-      if (typeof value !== 'string') {
+
+    case "string": {
+      if (typeof value !== "string") {
         return { valid: false, error: `${param.param_name} must be a string` };
       }
       break;
     }
   }
-  
+
   return { valid: true };
-};
+}
 
 export function validateParameters(
   operation: OperationDefinition,
   values: Record<string, unknown>
-): { valid: boolean; errors: Record<string, string> } { 
+): { valid: boolean; errors: Record<string, string> } {
   const errors: Record<string, string> = {};
 
-  for (const param of operation.parameters) { 
+  // Defensive check: ensure parameters is an array
+  const parameters = operation.parameters;
+  if (!Array.isArray(parameters)) {
+    return { valid: true, errors };
+  }
+
+  for (const param of parameters) {
     const result = validateParameter(param, values[param.param_name]);
-    if (!result.valid && result.error) { 
+    if (!result.valid && result.error) {
       errors[param.param_name] = result.error;
     }
-  };
+  }
 
   return {
     valid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
-};
+}
+
+
+ // Check if an operation has its parameters loaded
+export function hasParameters(
+  operation: OperationDefinition | OperationDefinitionListItem
+): operation is OperationDefinition {
+  return "parameters" in operation && Array.isArray(operation.parameters);
+}
+
+
+export function getParameters(
+  operation: OperationDefinition | OperationDefinitionListItem
+): ParameterSchema[] {
+  if (hasParameters(operation)) {
+    return operation.parameters;
+  }
+  return [];
+}
