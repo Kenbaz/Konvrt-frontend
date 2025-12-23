@@ -34,6 +34,7 @@ export {
   isUploadCancelled,
   isUploadError,
 } from './upload';
+
 export type {
   UploadProgress,
   UploadProgressCallback,
@@ -41,3 +42,34 @@ export type {
   UploadResult,
   UploadOptions,
 } from './upload';
+
+// Jobs
+export {
+  fetchJobs,
+  fetchJob,
+  fetchJobStatus,
+  deleteJob,
+  retryJob,
+  cancelJob,
+  fetchAllJobs,
+  fetchRecentJobs,
+  fetchJobsByStatus,
+  isJobComplete,
+  pollJobUntilComplete,
+  JobError,
+  safeJobOperation,
+} from "./jobs";
+
+// Query client utilities
+export {
+  queryKeys,
+  staleTimes,
+  pollingIntervals,
+  createQueryClient,
+  getQueryClient,
+  invalidateJobQueries,
+  invalidateJob,
+  prefetchOperations,
+  setJobInCache,
+  getJobFromCache,
+} from "./queryClient";
