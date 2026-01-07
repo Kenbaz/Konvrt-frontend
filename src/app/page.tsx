@@ -340,10 +340,10 @@ export default function HomePage() {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         {...deleteDialog.dialogProps}
-        title="Delete Job"
+        title="Delete Operation"
         message={
           jobToDelete
-            ? `Are you sure you want to delete this job? This action cannot be undone.`
+            ? `Are you sure you want to delete this operation? This action cannot be undone.`
             : ""
         }
         confirmText="Delete"
@@ -354,10 +354,10 @@ export default function HomePage() {
       {/* Retry Confirmation Dialog */}
       <ConfirmDialog
         {...retryDialog.dialogProps}
-        title="Retry Job"
+        title="Retry Operation"
         message={
           jobToRetry
-            ? `Are you sure you want to retry this job? A new job will be created with the same parameters.`
+            ? `Are you sure you want to retry this operation? A new operation will be created with the same parameters.`
             : ""
         }
         confirmText="Retry"

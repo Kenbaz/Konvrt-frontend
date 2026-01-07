@@ -136,14 +136,14 @@ export function ConfirmDialog({
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative bg-[#1a1a1e] rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="absolute top-4 right-4 p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-50"
+          className="absolute top-4 right-4 p-1 rounded-md text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-colors disabled:opacity-50 cursor-pointer"
           aria-label="Close dialog"
         >
           <X className="h-5 w-5" />
@@ -163,13 +163,13 @@ export function ConfirmDialog({
             <div className="flex-1 pt-1">
               <h3
                 id="confirm-dialog-title"
-                className="text-lg font-semibold text-gray-900"
+                className="text-lg font-semibold text-gray-300"
               >
                 {title}
               </h3>
               <p
                 id="confirm-dialog-description"
-                className="mt-2 text-sm text-gray-600"
+                className="mt-2 text-sm text-gray-400"
               >
                 {message}
               </p>
@@ -178,8 +178,13 @@ export function ConfirmDialog({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t">
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+        <div className="flex items-center justify-end gap-3 px-6 py-4  border-t border-gray-400">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="cursor-pointer hover:text-gray-800"
+          >
             {cancelText}
           </Button>
           <Button
@@ -188,6 +193,7 @@ export function ConfirmDialog({
             onClick={handleConfirm}
             disabled={isLoading}
             isLoading={isLoading}
+            className="cursor-pointer"
           >
             {confirmText}
           </Button>

@@ -27,7 +27,7 @@ function formatOperationName(operationName: string): string {
 
 function getDeleteMessage(job?: Job | JobListItem | null): string {
   if (!job) {
-    return "Are you sure you want to delete this job? This action cannot be undone.";
+    return "Are you sure you want to delete this operation? This action cannot be undone.";
   }
 
   const operationName = formatOperationName(job.operation);
@@ -36,14 +36,14 @@ function getDeleteMessage(job?: Job | JobListItem | null): string {
     ("output_file" in job && job.output_file !== null);
 
   if (hasOutput && job.status === "completed") {
-    return `Are you sure you want to delete this ${operationName} job? The processed output file will also be deleted. This action cannot be undone.`;
+    return `Are you sure you want to delete this ${operationName} operation? The processed output file will also be deleted. This action cannot be undone.`;
   }
 
   if (job.status === "processing" || job.status === "queued") {
-    return `Are you sure you want to delete this ${operationName} job? The job is currently ${job.status} and will be cancelled. This action cannot be undone.`;
+    return `Are you sure you want to delete this ${operationName} operation? The operation is currently ${job.status} and will be cancelled. This action cannot be undone.`;
   }
 
-  return `Are you sure you want to delete this ${operationName} job? This action cannot be undone.`;
+  return `Are you sure you want to delete this ${operationName} operation? This action cannot be undone.`;
 }
 
 export function DeleteConfirmDialog({
@@ -52,7 +52,7 @@ export function DeleteConfirmDialog({
   onConfirm,
   isLoading = false,
   job,
-  title = "Delete Job",
+  title = "Delete Operation",
   message,
 }: DeleteConfirmDialogProps) {
   const displayMessage = message || getDeleteMessage(job);

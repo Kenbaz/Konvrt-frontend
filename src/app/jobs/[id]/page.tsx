@@ -785,7 +785,7 @@ function DeleteConfirmModal({
           <div className="p-3 bg-red-50 rounded-full mb-4">
             <Trash2 className="h-6 w-6 text-red-500" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Delete Job?</h3>
+          <h3 className="text-lg font-semibold mb-2">Delete Operation?</h3>
           <p className="text-sm text-muted-foreground mb-6">
             This action cannot be undone. All associated files will be
             permanently deleted.
