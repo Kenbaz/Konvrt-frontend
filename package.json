@@ -2,6 +2,18 @@
   "name": "mediaprocessor-frontend",
   "version": "0.1.0",
   "private": true,
+  "description": "Modern web interface for the Konvrt media processing platform",
+  "keywords": [
+    "media-processing",
+    "video-compression",
+    "image-resize",
+    "audio-extraction",
+    "nextjs",
+    "react",
+    "typescript"
+  ],
+  "author": "Kenneth Bassey",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
