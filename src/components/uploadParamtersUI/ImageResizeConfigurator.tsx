@@ -334,20 +334,24 @@ export function ImageResizeConfigurator({
   return (
     <div className={clsx("space-y-6", className)}>
       {/* Image Preview Section */}
-      <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-[#1a1a1e] rounded-lg border border-gray-900 overflow-hidden">
         {/* Preview Header */}
-        <div className="px-4 py-3 border-b border-gray-200 bg-white">
+        <div className="px-4 py-3 border-b border-gray-900 bg-[#121214]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium text-gray-900">Image Preview</span>
+              <span className="text-sm font-medium text-gray-300">
+                Image Preview
+              </span>
             </div>
-            <span className="text-xs text-gray-500">{formatFileSize(file.size)}</span>
+            <span className="text-xs text-gray-300">
+              {formatFileSize(file.size)}
+            </span>
           </div>
         </div>
 
         {/* Preview Image */}
-        <div className="relative bg-gray-100 flex items-center justify-center p-4">
+        <div className="relative bg-[#1a1a1e] flex items-center justify-center p-4">
           <div className="relative max-h-64 overflow-hidden rounded-md shadow-sm">
             {previewUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -358,7 +362,7 @@ export function ImageResizeConfigurator({
                 style={{ maxWidth: "100%" }}
               />
             ) : (
-              <div className="h-48 w-64 bg-gray-200 flex items-center justify-center">
+              <div className="h-48 w-64 bg-[#1a1a1e] flex items-center justify-center">
                 <ImageIcon className="h-12 w-12 text-gray-400" />
               </div>
             )}
@@ -366,10 +370,10 @@ export function ImageResizeConfigurator({
         </div>
 
         {/* Original Dimensions */}
-        <div className="px-4 py-3 bg-white border-t border-gray-200">
+        <div className="px-4 py-3 bg-[#121214] border-t border-gray-900">
           {dimensionsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <div className="h-4 w-4 border-2 border-gray-400 border-t-blue-500 rounded-full animate-spin" />
               Reading image dimensions...
             </div>
           ) : dimensionsError ? (
@@ -380,19 +384,21 @@ export function ImageResizeConfigurator({
           ) : originalDimensions ? (
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <span className="text-xs font-medium text-gray-300 uppercase tracking-wide">
                   Original Size
                 </span>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-lg font-semibold text-gray-400">
                   {originalDimensions.width} × {originalDimensions.height}
-                  <span className="text-sm font-normal text-gray-500 ml-1">px</span>
+                  <span className="text-sm font-normal text-gray-400 ml-1">
+                    px
+                  </span>
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleResetToOriginal}
                 disabled={disabled}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 cursor-pointer"
               >
                 Use original size
               </button>
@@ -403,7 +409,7 @@ export function ImageResizeConfigurator({
 
       {/* Dimension Inputs */}
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-gray-900">Target Dimensions</h4>
+        <h4 className="text-sm font-medium text-gray-300">Target Dimensions</h4>
 
         {/* Quick Scale Presets */}
         {originalDimensions && (
@@ -415,16 +421,22 @@ export function ImageResizeConfigurator({
                 onClick={() => handleScalePreset(preset.factor)}
                 disabled={disabled}
                 className={clsx(
-                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  "border border-gray-300 bg-white text-gray-700",
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
+                  "border border-gray-300 bg-[#FFFFFFDE] text-gray-700",
                   "hover:bg-gray-50 hover:border-gray-400",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
-                  preset.factor < 1 && "hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700",
-                  preset.factor > 1 && "hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+                  preset.factor < 1 &&
+                    "hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700",
+                  preset.factor > 1 &&
+                    "hover:bg-green-50 hover:border-green-300 hover:text-green-700"
                 )}
               >
-                {preset.factor < 1 && <ZoomOut className="h-3 w-3 inline mr-1" />}
-                {preset.factor > 1 && <ZoomIn className="h-3 w-3 inline mr-1" />}
+                {preset.factor < 1 && (
+                  <ZoomOut className="h-3 w-3 inline mr-1" />
+                )}
+                {preset.factor > 1 && (
+                  <ZoomIn className="h-3 w-3 inline mr-1" />
+                )}
                 {preset.label}
               </button>
             ))}
@@ -437,7 +449,7 @@ export function ImageResizeConfigurator({
           <div className="space-y-1.5">
             <label
               htmlFor="resize-width"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-300"
             >
               Width <span className="text-gray-400">(px)</span>
             </label>
@@ -449,13 +461,15 @@ export function ImageResizeConfigurator({
               value={width ?? ""}
               onChange={handleWidthChange}
               disabled={disabled}
-              placeholder={originalDimensions ? String(originalDimensions.width) : "Width"}
+              placeholder={
+                originalDimensions ? String(originalDimensions.width) : "Width"
+              }
               className={clsx(
                 "block w-full rounded-lg border px-3 py-2 text-sm",
-                "bg-white text-gray-900 placeholder:text-gray-400",
-                "transition-colors duration-200",
-                "focus:outline-none focus:ring-2 focus:ring-offset-0",
-                "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-500",
+                "bg-[#1a1a1e] text-gray-300 placeholder:text-gray-400",
+                "transition-colors duration-200 cursor-pointer",
+                "focus:outline-none",
+                "border-[#1a1a1e] hover:border-gray-400  focus:ring-gray-500",
                 "disabled:bg-gray-50 disabled:cursor-not-allowed"
               )}
             />
@@ -465,7 +479,7 @@ export function ImageResizeConfigurator({
           <div className="space-y-1.5">
             <label
               htmlFor="resize-height"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-300"
             >
               Height <span className="text-gray-400">(px)</span>
             </label>
@@ -477,13 +491,17 @@ export function ImageResizeConfigurator({
               value={height ?? ""}
               onChange={handleHeightChange}
               disabled={disabled}
-              placeholder={originalDimensions ? String(originalDimensions.height) : "Height"}
+              placeholder={
+                originalDimensions
+                  ? String(originalDimensions.height)
+                  : "Height"
+              }
               className={clsx(
                 "block w-full rounded-lg border px-3 py-2 text-sm",
-                "bg-white text-gray-900 placeholder:text-gray-400",
-                "transition-colors duration-200",
-                "focus:outline-none focus:ring-2 focus:ring-offset-0",
-                "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-500",
+                "bg-[#1a1a1e] text-gray-300 placeholder:text-gray-400",
+                "transition-colors duration-200 cursor-pointer",
+                "focus:outline-none",
+                "border-[#1a1a1e] hover:border-gray-400  focus:ring-gray-500",
                 "disabled:bg-gray-50 disabled:cursor-not-allowed"
               )}
             />
@@ -510,11 +528,17 @@ export function ImageResizeConfigurator({
             ) : (
               <Unlock className="h-4 w-4" />
             )}
-            {maintainAspectRatio ? "Aspect ratio locked" : "Aspect ratio unlocked"}
+            {maintainAspectRatio
+              ? "Aspect ratio locked"
+              : "Aspect ratio unlocked"}
           </button>
           {maintainAspectRatio && originalDimensions && (
-            <span className="text-xs text-gray-500">
-              Ratio: {(originalDimensions.width / originalDimensions.height).toFixed(2)}:1
+            <span className="text-xs text-gray-400">
+              Ratio:{" "}
+              {(originalDimensions.width / originalDimensions.height).toFixed(
+                2
+              )}
+              :1
             </span>
           )}
         </div>
@@ -523,7 +547,7 @@ export function ImageResizeConfigurator({
         <div className="space-y-1.5">
           <label
             htmlFor="resize-resampling"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-300"
           >
             Resampling Method
           </label>
@@ -534,10 +558,10 @@ export function ImageResizeConfigurator({
             disabled={disabled}
             className={clsx(
               "block w-full rounded-lg border px-3 py-2 text-sm",
-              "bg-white text-gray-900",
-              "transition-colors duration-200",
-              "focus:outline-none focus:ring-2 focus:ring-offset-0",
-              "border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-blue-500",
+              "bg-[#1a1a1e] text-gray-400",
+              "transition-colors duration-200 cursor-pointer",
+              "focus:outline-none",
+              "border-[#1a1a1e] hover:border-gray-400  focus:ring-gray-500",
               "disabled:bg-gray-50 disabled:cursor-not-allowed"
             )}
           >
@@ -546,124 +570,144 @@ export function ImageResizeConfigurator({
             <option value="bilinear">Bilinear (Good Quality)</option>
             <option value="nearest">Nearest (Fastest)</option>
           </select>
-          <p className="text-xs text-gray-500">{RESAMPLING_DESCRIPTIONS[resampling]}</p>
+          <p className="text-xs text-gray-400">
+            {RESAMPLING_DESCRIPTIONS[resampling]}
+          </p>
         </div>
       </div>
 
       {/* Dimension Comparison */}
-      {originalDimensions && (calculatedDimensions.width || calculatedDimensions.height) && (
-        <div className="bg-linear-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200 p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-            <Info className="h-4 w-4 text-blue-500" />
-            Size Comparison
-          </h4>
+      {originalDimensions &&
+        (calculatedDimensions.width || calculatedDimensions.height) && (
+          <div className="bg-[#1a1a1e] rounded-lg border border-[#1a1a1e] p-4">
+            <h4 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+              <Info className="h-4 w-4 text-blue-500" />
+              Size Comparison
+            </h4>
 
-          <div className="flex items-center justify-between gap-4">
-            {/* Original */}
-            <div className="flex-1 text-center">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Original
-              </span>
-              <p className="text-lg font-semibold text-gray-700 mt-1">
-                {originalDimensions.width} × {originalDimensions.height}
-              </p>
-              <p className="text-xs text-gray-500">
-                {(originalDimensions.width * originalDimensions.height / 1000000).toFixed(2)} MP
-              </p>
-            </div>
-
-            {/* Arrow */}
-            <div className="shrink-0">
-              <ArrowRight className="h-6 w-6 text-gray-400" />
-            </div>
-
-            {/* New */}
-            <div className="flex-1 text-center">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                New Size
-              </span>
-              <p className="text-lg font-semibold text-blue-700 mt-1">
-                {calculatedDimensions.width ?? "—"} × {calculatedDimensions.height ?? "—"}
-              </p>
-              {calculatedDimensions.width && calculatedDimensions.height && (
-                <p className="text-xs text-gray-500">
-                  {(calculatedDimensions.width * calculatedDimensions.height / 1000000).toFixed(2)} MP
+            <div className="flex items-center justify-between gap-4">
+              {/* Original */}
+              <div className="flex-1 text-center">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Original
+                </span>
+                <p className="text-lg font-semibold text-gray-300 mt-1">
+                  {originalDimensions.width} × {originalDimensions.height}
                 </p>
-              )}
+                <p className="text-xs text-gray-400">
+                  {(
+                    (originalDimensions.width * originalDimensions.height) /
+                    1000000
+                  ).toFixed(2)}{" "}
+                  MP
+                </p>
+              </div>
+
+              {/* Arrow */}
+              <div className="shrink-0">
+                <ArrowRight className="h-6 w-6 text-gray-400" />
+              </div>
+
+              {/* New */}
+              <div className="flex-1 text-center">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  New Size
+                </span>
+                <p className="text-lg font-semibold text-blue-700 mt-1">
+                  {calculatedDimensions.width ?? "—"} ×{" "}
+                  {calculatedDimensions.height ?? "—"}
+                </p>
+                {calculatedDimensions.width && calculatedDimensions.height && (
+                  <p className="text-xs text-gray-400">
+                    {(
+                      (calculatedDimensions.width *
+                        calculatedDimensions.height) /
+                      1000000
+                    ).toFixed(2)}{" "}
+                    MP
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Change indicators */}
+            {calculatedDimensions.width && calculatedDimensions.height && (
+              <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-4">
+                {/* Width change */}
+                <div className="text-center">
+                  <span className="text-xs text-gray-400">Width</span>
+                  {(() => {
+                    const change = formatDimensionChange(
+                      originalDimensions.width,
+                      calculatedDimensions.width
+                    );
+                    return (
+                      <p
+                        className={clsx(
+                          "text-sm font-medium",
+                          change.isIncrease && "text-green-600",
+                          change.isDecrease && "text-orange-600",
+                          !change.isIncrease &&
+                            !change.isDecrease &&
+                            "text-gray-400"
+                        )}
+                      >
+                        {change.text}
+                      </p>
+                    );
+                  })()}
+                </div>
+
+                {/* Height change */}
+                <div className="text-center">
+                  <span className="text-xs text-gray-400">Height</span>
+                  {(() => {
+                    const change = formatDimensionChange(
+                      originalDimensions.height,
+                      calculatedDimensions.height
+                    );
+                    return (
+                      <p
+                        className={clsx(
+                          "text-sm font-medium",
+                          change.isIncrease && "text-green-600",
+                          change.isDecrease && "text-orange-600",
+                          !change.isIncrease &&
+                            !change.isDecrease &&
+                            "text-gray-400"
+                        )}
+                      >
+                        {change.text}
+                      </p>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Change indicators */}
-          {calculatedDimensions.width && calculatedDimensions.height && (
-            <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-4">
-              {/* Width change */}
-              <div className="text-center">
-                <span className="text-xs text-gray-500">Width</span>
-                {(() => {
-                  const change = formatDimensionChange(
-                    originalDimensions.width,
-                    calculatedDimensions.width
-                  );
-                  return (
-                    <p
-                      className={clsx(
-                        "text-sm font-medium",
-                        change.isIncrease && "text-green-600",
-                        change.isDecrease && "text-orange-600",
-                        !change.isIncrease && !change.isDecrease && "text-gray-500"
-                      )}
-                    >
-                      {change.text}
-                    </p>
-                  );
-                })()}
-              </div>
-
-              {/* Height change */}
-              <div className="text-center">
-                <span className="text-xs text-gray-500">Height</span>
-                {(() => {
-                  const change = formatDimensionChange(
-                    originalDimensions.height,
-                    calculatedDimensions.height
-                  );
-                  return (
-                    <p
-                      className={clsx(
-                        "text-sm font-medium",
-                        change.isIncrease && "text-green-600",
-                        change.isDecrease && "text-orange-600",
-                        !change.isIncrease && !change.isDecrease && "text-gray-500"
-                      )}
-                    >
-                      {change.text}
-                    </p>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
 
       {/* Validation Errors */}
-      {width && height && !validation.isValid && validation.errors.length > 0 && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-4">
-          <div className="flex">
-            <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-            <div className="ml-3">
-              <h4 className="text-sm font-medium text-red-800">
-                Please fix the following:
-              </h4>
-              <ul className="mt-2 text-sm text-red-700 list-disc pl-5 space-y-1">
-                {validation.errors.map((error, idx) => (
-                  <li key={idx}>{error}</li>
-                ))}
-              </ul>
+      {width &&
+        height &&
+        !validation.isValid &&
+        validation.errors.length > 0 && (
+          <div className="rounded-md bg-red-50 border border-red-200 p-4">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-red-800">
+                  Please fix the following:
+                </h4>
+                <ul className="mt-2 text-sm text-red-700 list-disc pl-5 space-y-1">
+                  {validation.errors.map((error, idx) => (
+                    <li key={idx}>{error}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }

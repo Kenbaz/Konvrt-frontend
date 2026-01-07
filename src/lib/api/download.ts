@@ -21,6 +21,18 @@ export interface DownloadResult {
   url: string;
 }
 
+interface CloudinaryDownloadResponse {
+  success: boolean;
+  data: {
+    download_url: string;
+    file_name: string;
+    file_size: number;
+    mime_type: string;
+    storage_location: "cloudinary" | "local";
+  };
+  message?: string;
+}
+
 export class DownloadError extends Error {
   code: string;
   status: number;
@@ -116,8 +128,114 @@ export function createDownloadController(): AbortController {
   return new AbortController();
 }
 
+
+function isCloudinaryResponse(
+  contentType: string | null
+): boolean {
+  return contentType?.includes("application/json") ?? false;
+}
+
+
+async function downloadFromCloudinaryUrl(
+  downloadUrl: string,
+  filename: string,
+  fileSize: number,
+  mimeType: string,
+  onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void,
+  abortController?: AbortController
+): Promise<DownloadResult> {
+  try {
+    const response = await fetch(downloadUrl, {
+      method: "GET",
+      signal: abortController?.signal,
+    });
+
+    if (!response.ok) {
+      throw new DownloadError(
+        `Failed to download from Cloudinary: ${response.status}`,
+        "CLOUDINARY_DOWNLOAD_FAILED",
+        response.status,
+        true
+      );
+    }
+
+    const contentLength = response.headers.get("content-length");
+    const total = contentLength ? parseInt(contentLength, 10) : fileSize;
+
+    if (response.body && onProgress) {
+      const reader = response.body.getReader();
+      const chunks: BlobPart[] = [];
+      let loaded = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        // Convert Uint8Array to ArrayBuffer for BlobPart compatibility
+        chunks.push(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+        loaded += value.length;
+        
+        const percentage = total > 0 ? Math.round((loaded / total) * 100) : -1;
+        onProgress({ loaded, total, percentage });
+      }
+
+      // Combine chunks into a single blob
+      const blob = new Blob(chunks, { type: mimeType });
+      const url = URL.createObjectURL(blob);
+
+      return {
+        success: true,
+        filename,
+        size: blob.size,
+        blob,
+        url,
+      };
+    } else {
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      if (onProgress) {
+        onProgress({ loaded: blob.size, total: blob.size, percentage: 100 });
+      }
+
+      return {
+        success: true,
+        filename,
+        size: blob.size,
+        blob,
+        url,
+      };
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new DownloadError(
+        "Download was cancelled",
+        "DOWNLOAD_CANCELLED",
+        0,
+        false
+      );
+    }
+    
+    if (error instanceof DownloadError) {
+      throw error;
+    }
+
+    throw new DownloadError(
+      "Failed to download from Cloudinary",
+      "CLOUDINARY_DOWNLOAD_FAILED",
+      0,
+      true
+    );
+  }
+}
+
 /**
  * Download a processed file for a completed job
+ *
+ * Handles both:
+ * - Cloudinary storage: Gets JSON with download URL, then downloads from Cloudinary
+ * - Local storage: Gets blob directly from the API
  *
  * @param jobId - The job ID to download the output from
  * @param options - Download options including progress callback
@@ -133,6 +251,53 @@ export async function downloadJobOutput(
 
   try {
     const response = await apiClient.get(
+      ApiEndpoints.OPERATION_DOWNLOAD(jobId),
+      {
+        signal: abortController?.signal,
+        timeout: 30000,
+      }
+    );
+
+    const contentType = response.headers["content-type"] as string | null;
+
+    if (isCloudinaryResponse(contentType)) {
+      const cloudinaryResponse = response.data as CloudinaryDownloadResponse;
+      
+      if (!cloudinaryResponse.success || !cloudinaryResponse.data?.download_url) {
+        throw new DownloadError(
+          "Invalid Cloudinary response",
+          "INVALID_RESPONSE",
+          0,
+          true
+        );
+      }
+
+      const { download_url, file_name, file_size, mime_type } = cloudinaryResponse.data;
+      const filename = customFilename || file_name;
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("Cloudinary download response:", {
+          download_url,
+          file_name,
+          file_size,
+          mime_type,
+        });
+      }
+
+      // Download from Cloudinary URL
+      return await downloadFromCloudinaryUrl(
+        download_url,
+        filename,
+        file_size,
+        mime_type,
+        onProgress,
+        abortController
+      );
+    }
+
+    // Local storage: response is a blob
+    // Re-fetch with blob response type for proper handling
+    const blobResponse = await apiClient.get(
       ApiEndpoints.OPERATION_DOWNLOAD(jobId),
       {
         responseType: "blob",
@@ -161,19 +326,19 @@ export async function downloadJobOutput(
       }
     );
 
-    const blob = response.data as Blob;
+    const blob = blobResponse.data as Blob;
 
     // Determine filename from headers
-    const contentDisposition = response.headers[
+    const contentDisposition = blobResponse.headers[
       "content-disposition"
     ] as string | null;
-    const contentType = response.headers["content-type"] as string | null;
+    const blobContentType = blobResponse.headers["content-type"] as string | null;
 
     if (process.env.NODE_ENV === "development") {
-      console.log("Download response headers:", {
+      console.log("Local download response headers:", {
         contentDisposition,
-        contentType,
-        allHeaders: response.headers,
+        contentType: blobContentType,
+        allHeaders: blobResponse.headers,
       });
     }
 
@@ -182,7 +347,7 @@ export async function downloadJobOutput(
       filename = extractFilenameFromHeader(contentDisposition);
     }
     if (!filename) {
-      filename = generateFallbackFilename(jobId, contentType);
+      filename = generateFallbackFilename(jobId, blobContentType);
     }
 
     const url = URL.createObjectURL(blob);
@@ -202,6 +367,10 @@ export async function downloadJobOutput(
         0,
         false
       );
+    }
+
+    if (error instanceof DownloadError) {
+      throw error;
     }
 
     if (error && typeof error === "object" && "response" in error) {

@@ -36,34 +36,34 @@ function MediaTypeIcon({
   }
 }
 
-function getParameterTypeLabel(param: ParameterSchema): string {
-  switch (param.type) {
-    case "integer":
-      if (param.min !== null && param.max !== null) {
-        return `Integer (${param.min} - ${param.max})`;
-      }
-      if (param.min !== null) {
-        return `Integer (min: ${param.min})`;
-      }
-      if (param.max !== null) {
-        return `Integer (max: ${param.max})`;
-      }
-      return "Integer";
-    case "float":
-      if (param.min !== null && param.max !== null) {
-        return `Number (${param.min} - ${param.max})`;
-      }
-      return "Number";
-    case "boolean":
-      return "Yes/No";
-    case "choice":
-      return `Choice (${param.choices?.length || 0} options)`;
-    case "string":
-      return "Text";
-  }
-  const _exhaustiveCheck: never = param;
-  return String(_exhaustiveCheck);
-};
+// function getParameterTypeLabel(param: ParameterSchema): string {
+//   switch (param.type) {
+//     case "integer":
+//       if (param.min !== null && param.max !== null) {
+//         return `Integer (${param.min} - ${param.max})`;
+//       }
+//       if (param.min !== null) {
+//         return `Integer (min: ${param.min})`;
+//       }
+//       if (param.max !== null) {
+//         return `Integer (max: ${param.max})`;
+//       }
+//       return "Integer";
+//     case "float":
+//       if (param.min !== null && param.max !== null) {
+//         return `Number (${param.min} - ${param.max})`;
+//       }
+//       return "Number";
+//     case "boolean":
+//       return "Yes/No";
+//     case "choice":
+//       return `Choice (${param.choices?.length || 0} options)`;
+//     case "string":
+//       return "Text";
+//   }
+//   const _exhaustiveCheck: never = param;
+//   return String(_exhaustiveCheck);
+// };
 
 
 function formatDefaultValue(param: ParameterSchema): string {
@@ -91,7 +91,7 @@ export function OperationParametersPreview({
   operation,
   onConfirm,
   onClear,
-  confirmLabel = "Continue with this operation",
+  confirmLabel = "Continue with operation",
   showActions = true,
   showFullParameters = true,
   className = "",
@@ -103,33 +103,34 @@ export function OperationParametersPreview({
 
   return (
     <Card
-      variant="default"
       padding="none"
-      className={`overflow-hidden border-blue-200 bg-linear-to-br from-blue-50 to-white ${className}`}
+      className={`overflow-hidden bg-[#0a0a0b]  ${className}`}
     >
       {/* Header */}
-      <div className="p-4 border-b border-blue-100">
+      <div className="p-4 mb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             {/* Icon */}
-            <div className="shrink-0 w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+            <div className="shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
               <MediaTypeIcon
                 mediaType={operation.media_type}
-                className="w-6 h-6 text-blue-600"
+                className="w-5 h-5 text-blue-600"
               />
             </div>
 
             {/* Title and description */}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="space-y-2">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-[#FFFFFFDE]">
                   {displayName}
                 </h3>
                 <Badge variant="primary" size="sm">
                   {operation.media_type}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-600">{operation.description}</p>
+              <p className="text-sm text-[#FFFFFFDE]">
+                {operation.description}
+              </p>
             </div>
           </div>
 
@@ -138,7 +139,7 @@ export function OperationParametersPreview({
             <button
               type="button"
               onClick={onClear}
-              className="shrink-0 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="shrink-0 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               aria-label="Clear selection"
             >
               <X className="w-5 h-5" />
@@ -148,16 +149,16 @@ export function OperationParametersPreview({
       </div>
 
       {/* Supported Formats */}
-      <div className="p-4 border-b border-blue-100 bg-blue-50/50">
+      <div className="p-4 bg-[#121214] mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Input formats */}
           <div className="flex items-start gap-2">
-            <FileInput className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <FileInput className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+              <p className="text-[0.8rem] font-medium text-gray-400 uppercase tracking-wide mb-1">
                 Input Formats
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-[#FFFFFFDE]">
                 {operation.input_formats?.length > 0
                   ? operation.input_formats.join(", ")
                   : "Any supported format"}
@@ -167,12 +168,12 @@ export function OperationParametersPreview({
 
           {/* Output formats */}
           <div className="flex items-start gap-2">
-            <FileOutput className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <FileOutput className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+              <p className="text-[0.8rem] font-medium text-gray-400 uppercase tracking-wide mb-1">
                 Output Formats
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-[#FFFFFFDE]">
                 {operation.output_formats?.length > 0
                   ? operation.output_formats.join(", ")
                   : "Same as input"}
@@ -184,10 +185,10 @@ export function OperationParametersPreview({
 
       {/* Parameters Section */}
       {hasParameters && showFullParameters && (
-        <div className="p-4 border-b border-blue-100">
+        <div className="p-4 border-b border-gray-400">
           <div className="flex items-center gap-2 mb-3">
-            <Settings className="w-4 h-4 text-gray-500" />
-            <h4 className="text-sm font-medium text-gray-700">
+            <Settings className="w-6 h-6 text-gray-400" />
+            <h4 className="text-[0.9rem] font-medium text-gray-400">
               Parameters ({operation.parameters.length})
             </h4>
           </div>
@@ -210,10 +211,10 @@ export function OperationParametersPreview({
             {/* Optional parameters */}
             {optionalParams.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">
+                <p className="text-xs font-medium text-gray-400 mb-3">
                   Optional ({optionalParams.length})
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {optionalParams.map((param) => (
                     <ParameterRow key={param.param_name} param={param} />
                   ))}
@@ -226,7 +227,7 @@ export function OperationParametersPreview({
 
       {/* Compact parameter summary when not showing full details */}
       {hasParameters && !showFullParameters && (
-        <div className="p-4 border-b border-blue-100">
+        <div className="p-4 border-b border-gray-400">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Settings className="w-4 h-4" />
             <span>
@@ -244,9 +245,10 @@ export function OperationParametersPreview({
 
       {/* Action Buttons */}
       {showActions && (
-        <div className="p-4 bg-gray-50">
+        <div className="p-4">
           <Button
             variant="primary"
+            className="cursor-pointer"
             size="lg"
             fullWidth
             onClick={onConfirm}
@@ -264,26 +266,26 @@ export function OperationParametersPreview({
 // Individual parameter row in the preview
 function ParameterRow({ param }: { param: ParameterSchema }) {
   return (
-    <div className="flex items-start justify-between gap-4 p-2 bg-white rounded-lg border border-gray-100">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-900">
+    <div className="flex items-start justify-between gap-4 p-2 bg-[#121214] rounded-lg border border-[#121214]">
+      <div className="flex-1 pb-2 min-w-0">
+        <div className="flex items-center">
+          <span className="text-sm  font-medium text-gray-400">
             {param.param_name.replace(/_/g, " ")}
           </span>
           {param.required && <span className="text-xs text-red-500">*</span>}
         </div>
         {param.description && (
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+          <p className="text-xs text-[#FFFFFFDE] mt-1 line-clamp-1">
             {param.description}
           </p>
         )}
       </div>
       <div className="shrink-0 text-right">
-        <span className="text-xs text-gray-500 block">
+        {/* <span className="text-xs text-gray-500 block">
           {getParameterTypeLabel(param)}
-        </span>
+        </span> */}
         {param.default !== undefined && param.default !== null && (
-          <span className="text-xs text-blue-600 block">
+          <span className="text-xs text-gray-500 block">
             Default: {formatDefaultValue(param)}
           </span>
         )}

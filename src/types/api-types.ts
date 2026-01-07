@@ -104,7 +104,7 @@ export type DownloadProgressCallback = (progress: {
 
 export interface DownloadOptions {
     onProgress?: DownloadProgressCallback;
-    filename?: string;
+    filename?: string | null;
 };
 
 // API Urls types

@@ -12,7 +12,7 @@
  * - Form state management
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { clsx } from "clsx";
 import {
   RotateCcw,
@@ -121,35 +121,56 @@ export function useParameterForm(
     return {};
   }, [validateOnMount, operation, mergedInitialValues]);
 
-  
-  const [prevOperationKey, setPrevOperationKey] = useState(operationKey);
-
-  
-  const [values, setValuesState] =
-    useState<ParameterValues>(mergedInitialValues);
+  const [values, setValuesState] = useState<ParameterValues>(mergedInitialValues);
   const [errors, setErrors] = useState<ValidationErrors>(initialErrors);
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [isDirty, setIsDirty] = useState(false);
 
+  // Track the previous operation key to detect changes
+  const prevOperationKeyRef = useRef(operationKey);
   
-  if (prevOperationKey !== operationKey) {
-    setPrevOperationKey(operationKey);
-    setValuesState(mergedInitialValues);
-    setErrors(validateOnMount ? initialErrors : {});
-    setTouchedFields(new Set());
-    setIsDirty(false);
-  }
+  // Track if this is the initial mount to avoid triggering onChange on mount
+  const isInitialMountRef = useRef(true);
 
+  // Reset form when operation changes
+  useEffect(() => {
+    if (prevOperationKeyRef.current !== operationKey) {
+      prevOperationKeyRef.current = operationKey;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValuesState(mergedInitialValues);
+      setErrors(validateOnMount ? initialErrors : {});
+      setTouchedFields(new Set());
+      setIsDirty(false);
+    }
+  }, [operationKey, mergedInitialValues, validateOnMount, initialErrors]);
 
   const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
+
+  // Notify parent of value changes via useEffect - this is the key fix!
+  // This runs AFTER the render is complete, avoiding the "setState during render" issue
+  useEffect(() => {
+    // Skip the initial mount to avoid unnecessary calls
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    
+    onChange?.(values, isValid);
+  }, [values, isValid, onChange]);
+
+  // Notify parent of validation changes
+  useEffect(() => {
+    if (!isInitialMountRef.current) {
+      onValidationChange?.(errors, isValid);
+    }
+  }, [errors, isValid, onValidationChange]);
 
   // Validate all parameters
   const validate = useCallback((): boolean => {
     const result = validateParameters(operation, values);
     setErrors(result.errors);
-    onValidationChange?.(result.errors, result.valid);
     return result.valid;
-  }, [operation, values, onValidationChange]);
+  }, [operation, values]);
 
   // Validate a single parameter
   const validateField = useCallback(
@@ -165,75 +186,63 @@ export function useParameterForm(
     [operation.parameters]
   );
 
-  // Set a single value
+  // Set a single value - no longer calls onChange directly
   const setValue = useCallback(
     (paramName: string, value: unknown) => {
-      setValuesState((prev) => {
-        const newValues = { ...prev, [paramName]: value };
+      setValuesState((prev) => ({ ...prev, [paramName]: value }));
+      
+      // Validate if enabled
+      if (validateOnChange) {
+        const fieldError = validateField(paramName, value);
+        setErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          if (fieldError) {
+            newErrors[paramName] = fieldError;
+          } else {
+            delete newErrors[paramName];
+          }
+          return newErrors;
+        });
+      }
 
-        // Validate if enabled
-        if (validateOnChange) {
-          const fieldError = validateField(paramName, value);
-          setErrors((prevErrors) => {
-            const newErrors = { ...prevErrors };
-            if (fieldError) {
-              newErrors[paramName] = fieldError;
-            } else {
-              delete newErrors[paramName];
-            }
-            return newErrors;
-          });
-        }
-
-        // Mark as dirty
-        setIsDirty(true);
-
-        // Notify change
-        onChange?.(newValues, Object.keys(errors).length === 0);
-
-        return newValues;
-      });
+      // Mark as dirty
+      setIsDirty(true);
     },
-    [validateOnChange, validateField, onChange, errors]
+    [validateOnChange, validateField]
   );
 
-  // Set multiple values at once
+  // Set multiple values at once - no longer calls onChange directly
   const setValues = useCallback(
-    (newValues: ParameterValues) => {
-      setValuesState((prev) => {
-        const merged = { ...prev, ...newValues };
+    (newValuesToSet: ParameterValues) => {
+      setValuesState((prev) => ({ ...prev, ...newValuesToSet }));
 
-        if (validateOnChange) {
-          const result = validateParameters(operation, merged);
+      if (validateOnChange) {
+        // We need to validate with the merged values
+        setValuesState((currentValues) => {
+          const result = validateParameters(operation, currentValues);
           setErrors(result.errors);
-          onValidationChange?.(result.errors, result.valid);
-        }
+          return currentValues; // Return unchanged, we just needed to read the value
+        });
+      }
 
-        setIsDirty(true);
-        onChange?.(merged, Object.keys(errors).length === 0);
-
-        return merged;
-      });
+      setIsDirty(true);
     },
-    [validateOnChange, operation, onChange, onValidationChange, errors]
+    [validateOnChange, operation]
   );
 
-  // Reset to defaults
+  // Reset to defaults - no longer calls onChange directly
   const reset = useCallback(() => {
     setValuesState(mergedInitialValues);
     setErrors({});
     setTouchedFields(new Set());
     setIsDirty(false);
-    onChange?.(mergedInitialValues, true);
-    onValidationChange?.({}, true);
-  }, [mergedInitialValues, onChange, onValidationChange]);
+  }, [mergedInitialValues]);
 
   // Mark field as touched
   const touchField = useCallback((paramName: string) => {
     setTouchedFields((prev) => new Set([...prev, paramName]));
   }, []);
 
-  
   const getFieldError = useCallback(
     (paramName: string): string | undefined => {
       if (!validateOnChange && !touchedFields.has(paramName)) {
@@ -330,7 +339,7 @@ export function ParameterForm({
   if (operation.parameters.length === 0) {
     return (
       <div className={clsx("rounded-lg border border-gray-200 p-6", className)}>
-        <div className="flex items-center gap-3 text-gray-500">
+        <div className="flex items-center gap-3 text-gray-300">
           <Settings2 className="h-5 w-5" />
           <p className="text-sm">
             This operation has no configurable parameters.
@@ -347,8 +356,8 @@ export function ParameterForm({
       {/* Header with validation status and reset button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Settings2 className="h-5 w-5 text-gray-500" />
-          <h3 className="text-sm font-medium text-gray-900">Configuration</h3>
+          <Settings2 className="h-5 w-5 text-gray-300" />
+          <h3 className="text-sm font-medium text-gray-300">Configuration</h3>
           {showValidationSummary && (
             <span
               className={clsx(
@@ -380,7 +389,7 @@ export function ParameterForm({
             disabled={disabled}
             className={clsx(
               "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium",
-              "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+              "text-gray-300 cursor-pointer hover:text-gray-900 hover:bg-gray-100",
               "rounded-md transition-colors duration-200",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
@@ -395,7 +404,7 @@ export function ParameterForm({
       {required.length > 0 && (
         <div className="space-y-4">
           {optional.length > 0 && (
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
               Required
             </h4>
           )}

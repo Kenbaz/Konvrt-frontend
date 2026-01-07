@@ -44,7 +44,7 @@ export const staleTimes = {
 // Polling intervals for different scenarios
 export const pollingIntervals = {
     activeJob: 2 * 1000, // 2 seconds
-    jobList: 15 * 1000, // 15 seconds
+    jobList: 60 * 1000, // 60 seconds
     health: 30 * 1000, // 30 seconds
 } as const;
 

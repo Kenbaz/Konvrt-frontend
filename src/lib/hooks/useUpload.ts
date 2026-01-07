@@ -10,7 +10,7 @@ import {
 import type { CreateJobParams, Job } from "@/types";
 
 
-export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error' | 'cancelled';
+export type UploadStatus = 'idle' | 'uploading' | 'saving' | 'success' | 'error' | 'cancelled';
 
 export interface UseUploadState {
     status: UploadStatus;
@@ -75,7 +75,15 @@ export function useUpload(options: UseUploadOptions = {}): UseUploadReturn {
             const result = await uploadAndCreateJob(params, {
                 signal: abortControllerRef.current.signal,
                 onProgress: (progress) => {
-                    setState(prev => ({ ...prev, progress }));
+                    if (progress.percentage >= 100) {
+                        setState(prev => ({
+                            ...prev,
+                            status: 'saving',
+                            progress,
+                        }));
+                    } else {
+                        setState(prev => ({ ...prev, progress }));
+                    }
                     if (onProgress) {
                         onProgress(progress);
                     }

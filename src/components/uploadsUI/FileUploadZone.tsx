@@ -3,27 +3,21 @@
 "use client";
 
 import { useCallback, useState, useMemo } from "react";
-import { useDropzone, FileRejection, DropzoneOptions } from "react-dropzone";
-import { Upload, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { useDropzone, DropzoneOptions } from "react-dropzone";
+import { Upload, AlertCircle } from "lucide-react";
 import { FilePreview } from "./Filepreview";
 import {
-  buildDropZoneAcceptObject as buildDropzoneAccept,
-  detectMediaType,
   formatFileSize,
   getAcceptedTypesDescription,
   getAcceptedExtensions,
 } from "@/lib/utils/fileHelpers";
+import {
+  FILE_SIZE_LIMITS,
+  DEFAULT_MAX_FILE_SIZE,
+  validateFile,
+} from "@/lib/utils/fileValidations";
 import type { MediaType } from "@/types/common-types";
 
-
-const MAX_FILE_SIZES: Record<MediaType, number> = {
-  video: 500 * 1024 * 1024, // 500 MB
-  image: 50 * 1024 * 1024, // 50 MB
-  audio: 100 * 1024 * 1024, // 100 MB
-};
-
-// Default max file size if media type is unknown
-const DEFAULT_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
 export interface FileUploadZoneProps {
   onFileSelect: (file: File) => void;
@@ -64,60 +58,16 @@ export function FileUploadZone({
 }: FileUploadZoneProps) {
   const [fileError, setFileError] = useState<FileError | null>(null);
 
-  // Build accept configuration
-  const acceptConfig = useMemo(() => {
-    if (acceptedFormats && acceptedFormats.length > 0) {
-      const accept: Record<string, string[]> = {};
-      for (const format of acceptedFormats) {
-        const normalizedFormat = format.startsWith(".") ? format : `.${format}`;
-        
-        const ext = normalizedFormat.slice(1).toLowerCase();
-
-        // Map common extensions to MIME types
-        const mimeMap: Record<string, string> = {
-          mp4: "video/mp4",
-          webm: "video/webm",
-          avi: "video/x-msvideo",
-          mov: "video/quicktime",
-          mkv: "video/x-matroska",
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          png: "image/png",
-          gif: "image/gif",
-          webp: "image/webp",
-          bmp: "image/bmp",
-          mp3: "audio/mpeg",
-          wav: "audio/wav",
-          ogg: "audio/ogg",
-          aac: "audio/aac",
-          flac: "audio/flac",
-        };
-
-        const mimeType = mimeMap[ext];
-        if (mimeType) {
-          if (!accept[mimeType]) {
-            accept[mimeType] = [];
-          }
-          accept[mimeType].push(normalizedFormat);
-        }
-      }
-      return accept;
-    }
-
-    // Use media types
-    return buildDropzoneAccept(acceptedMediaTypes);
-  }, [acceptedFormats, acceptedMediaTypes]);
-
     
   // Calculate max file size based on media type or custom value
   const effectiveMaxSize = useMemo(() => {
     if (maxFileSize) return maxFileSize;
 
     if (acceptedMediaTypes.length === 1) {
-      return MAX_FILE_SIZES[acceptedMediaTypes[0]];
+      return FILE_SIZE_LIMITS[acceptedMediaTypes[0]] ?? DEFAULT_MAX_FILE_SIZE;
     }
 
-    return Math.max(...acceptedMediaTypes.map((type) => MAX_FILE_SIZES[type]));
+    return Math.max(...acceptedMediaTypes.map((type) => FILE_SIZE_LIMITS[type] ?? DEFAULT_MAX_FILE_SIZE));
   }, [maxFileSize, acceptedMediaTypes]);
 
     
@@ -132,73 +82,34 @@ export function FileUploadZone({
   }, [acceptedFormats, acceptedMediaTypes]);
 
     
-  // Handle file drop/selection
   const onDrop = useCallback(
-    (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+    (acceptedFiles: File[]) => {
       setFileError(null);
 
-      // Handle rejections
-      if (rejectedFiles.length > 0) {
-        const rejection = rejectedFiles[0];
-        const error = rejection.errors[0];
-
-        if (error.code === "file-invalid-type") {
-          setFileError({
-            message: `Invalid file type. Accepted types: ${acceptedTypesDescription}`,
-            code: "INVALID_TYPE",
-          });
-        } else if (error.code === "file-too-large") {
-          setFileError({
-            message: `File is too large. Maximum size: ${formatFileSize(
-              effectiveMaxSize
-            )}`,
-            code: "FILE_TOO_LARGE",
-          });
-        } else {
-          setFileError({
-            message: error.message,
-            code: error.code,
-          });
-        }
+      if (acceptedFiles.length === 0) {
         return;
       }
 
-      // Handle accepted file
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
+      const file = acceptedFiles[0];
 
-        const detectedType = detectMediaType(file);
-        if (!detectedType) {
-          setFileError({
-            message:
-              "Could not determine file type. Please select a valid media file.",
-            code: "UNKNOWN_TYPE",
-          });
-          return;
-        }
+      // Use our comprehensive validation for type and size
+      const validationResult = validateFile(
+        file,
+        acceptedFormats ? undefined : acceptedMediaTypes,
+        maxFileSize
+      );
 
-        // Check if detected type is in accepted types
-        if (acceptedMediaTypes.length > 0 && !acceptedFormats) {
-          if (!acceptedMediaTypes.includes(detectedType)) {
-            const expectedTypes = acceptedMediaTypes.join(", ");
-            setFileError({
-              message: `Expected ${expectedTypes} file, but got ${detectedType} file.`,
-              code: "MEDIA_TYPE_MISMATCH",
-            });
-            return;
-          }
-        }
-
-        onFileSelect(file);
+      if (!validationResult.isValid && validationResult.error) {
+        setFileError({
+          message: validationResult.error.message,
+          code: validationResult.error.code,
+        });
+        return;
       }
+
+      onFileSelect(file);
     },
-    [
-      onFileSelect,
-      acceptedTypesDescription,
-      effectiveMaxSize,
-      acceptedMediaTypes,
-      acceptedFormats,
-    ]
+    [onFileSelect, acceptedMediaTypes, acceptedFormats, maxFileSize]
   );
 
   // Handle file removal
@@ -208,11 +119,8 @@ export function FileUploadZone({
   }, [onFileClear]);
 
 
-  // Dropzone configuration
   const dropzoneOptions: DropzoneOptions = {
     onDrop,
-    accept: acceptConfig,
-    maxSize: effectiveMaxSize,
     maxFiles: 1,
     multiple: false,
     disabled: disabled || isUploading,
@@ -224,8 +132,6 @@ export function FileUploadZone({
     getRootProps,
     getInputProps,
     isDragActive,
-    isDragAccept,
-    isDragReject,
     open,
   } = useDropzone(dropzoneOptions);
 
@@ -261,26 +167,18 @@ export function FileUploadZone({
   const getZoneClasses = () => {
     const baseClasses = `
       relative border-2 border-dashed rounded-lg transition-all duration-200 ease-in-out
-      focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2
+      focus-within:outline-none 
     `;
 
     if (disabled || isUploading) {
       return `${baseClasses} border-gray-200 bg-gray-50 cursor-not-allowed opacity-60`;
     }
 
-    if (isDragReject) {
-      return `${baseClasses} border-red-400 bg-red-50`;
-    }
-
-    if (isDragAccept) {
-      return `${baseClasses} border-green-400 bg-green-50`;
-    }
-
     if (isDragActive) {
-      return `${baseClasses} border-blue-400 bg-blue-50`;
+      return `${baseClasses} `;
     }
 
-    return `${baseClasses} border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50 cursor-pointer`;
+    return `${baseClasses} border-gray-300 bg-[#1a1a1e] hover:border-gray-500 cursor-pointer`;
   };
 
   // Padding based on compact mode
@@ -299,40 +197,19 @@ export function FileUploadZone({
           <div
             className={`
             rounded-full p-3 mb-4
-            ${isDragReject ? "bg-red-100" : ""}
-            ${isDragAccept ? "bg-green-100" : ""}
-            ${
-              isDragActive && !isDragAccept && !isDragReject
-                ? "bg-blue-100"
-                : ""
-            }
-            ${!isDragActive ? "bg-gray-100" : ""}
+            ${isDragActive ? "bg-blue-100" : "bg-gray-100"}
           `}
           >
-            {isDragReject ? (
-              <X className="h-8 w-8 text-red-500" />
-            ) : isDragAccept ? (
-              <CheckCircle2 className="h-8 w-8 text-green-500" />
-            ) : (
-              <Upload
-                className={`h-8 w-8 ${
-                  isDragActive ? "text-blue-500" : "text-gray-400"
-                }`}
-              />
-            )}
+            <Upload
+              className={`h-8 w-8 ${
+                isDragActive ? "text-blue-500" : "text-gray-400"
+              }`}
+            />
           </div>
 
           {/* Main text */}
           <div className="space-y-1">
-            {isDragReject ? (
-              <p className="text-sm font-medium text-red-600">
-                This file type is not accepted
-              </p>
-            ) : isDragAccept ? (
-              <p className="text-sm font-medium text-green-600">
-                Drop to upload this file
-              </p>
-            ) : isDragActive ? (
+            {isDragActive ? (
               <p className="text-sm font-medium text-blue-600">
                 Drop your file here
               </p>
@@ -366,7 +243,7 @@ export function FileUploadZone({
         <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-red-700">{displayError}</p>
+            <p className="text-sm font-medium text-red-700">{displayError}</p>
             {fileError?.code === "INVALID_TYPE" && (
               <p className="text-xs text-red-600 mt-1">
                 Please select a file with one of these extensions:{" "}
@@ -375,6 +252,18 @@ export function FileUploadZone({
                   .map((ext) => `.${ext}`)
                   .join(", ")}
               </p>
+            )}
+            {fileError?.code === "FILE_TOO_LARGE" && (
+              <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
+                <p className="font-medium">File size limits:</p>
+                <ul className="mt-1 list-disc list-inside">
+                  {acceptedMediaTypes.map((type) => (
+                    <li key={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}: {formatFileSize(FILE_SIZE_LIMITS[type] ?? DEFAULT_MAX_FILE_SIZE)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </div>
@@ -442,4 +331,4 @@ export function SimpleDropZone({
       )}
     </div>
   );
-}
+};

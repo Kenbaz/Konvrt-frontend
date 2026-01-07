@@ -32,9 +32,15 @@ import { ParameterForm, type ParameterValues } from "../uploadParamtersUI";
 import { Button } from "../UI/Button";
 import { Card } from "../UI/Card";
 import { useCreateJob, type CreateJobInput } from "@/lib/hooks/useCreateJob";
+import { getMaxFileSize } from "@/lib/utils/fileValidations";
 import type { OperationDefinition } from "@/types/operation-types";
 import type { Job } from "@/types/job-types";
-import type { JsonObject, MediaType } from "@/types/common-types";
+import type { JsonObject } from "@/types/common-types";
+import { JobProgressTracker } from "./JobProgressTracker";
+import {
+  ImageResizeConfigurator,
+  type ImageResizeValues,
+} from "../uploadParamtersUI/ImageResizeConfigurator";
 
 
 export type JobCreationStep = "operation" | "upload" | "parameters" | "submitting";
@@ -110,7 +116,7 @@ function StepIndicator({
             {/* Step label */}
             <span
               className={clsx(
-                "ml-2 text-sm font-medium hidden sm:inline",
+                "ml-2 text-sm  font-medium hidden sm:inline",
                 isCurrent ? "text-blue-600" : isPast || isCompleted ? "text-green-600" : "text-gray-500"
               )}
             >
@@ -148,6 +154,7 @@ export function JobCreationForm({
     createJob,
     isCreating,
     isUploading,
+    uploadStatus,
     progress,
     error: createError,
     createdJob,
@@ -164,13 +171,8 @@ export function JobCreationForm({
   const maxFileSize = useMemo(() => {
     if (!formState.selectedOperation) return undefined;
     const mediaType = formState.selectedOperation.media_type;
-    // Default max sizes: video 2GB, image 50MB, audio 500MB
-    const maxSizes: Record<MediaType, number> = {
-      video: 2 * 1024 * 1024 * 1024,  // 2GB
-      image: 50 * 1024 * 1024,         // 50MB
-      audio: 500 * 1024 * 1024,        // 500MB
-    };
-    return maxSizes[mediaType] ?? 100 * 1024 * 1024; // Default 100MB
+    // Use centralized file size limits that match the backend
+    return getMaxFileSize(mediaType);
   }, [formState.selectedOperation]);
 
   // Handlers
@@ -218,6 +220,17 @@ export function JobCreationForm({
     }));
   }, []);
 
+  const handleImageResizeChange = useCallback(
+    (values: ImageResizeValues, isValid: boolean) => {
+      setFormState((prev) => ({
+        ...prev,
+        parameters: values as unknown as ParameterValues,
+        parametersValid: isValid,
+      }));
+    },
+    []
+  );
+
   const handleSubmit = useCallback(async () => {
     if (!formState.selectedOperation || !formState.selectedFile) {
       return;
@@ -263,20 +276,23 @@ export function JobCreationForm({
   }, [formState.selectedOperation, formState.selectedFile, formState.parametersValid, isCreating]);
 
   return (
-    <div className={clsx("space-y-6", className)}>
+    <div className={clsx("space-y-6 h-full rounded-lg", className)}>
       {/* Step Indicator */}
-      <StepIndicator currentStep={currentStep} completedSteps={completedSteps} />
+      <StepIndicator
+        currentStep={currentStep}
+        completedSteps={completedSteps}
+      />
 
       {/* Step Content */}
-      <Card className="p-6">
+      <Card className="bg-[#2a2a2e] pb-[15%] md:pb-10">
         {/* Step 1: Operation Selection */}
         {currentStep === "operation" && (
-          <div className="space-y-4">
+          <div className="space-y-4 ">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg md:text-xl md:mb-1 font-semibold text-[#f4f4f5]">
                 Select an Operation
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm md:text-base text-[#a1a1aa]">
                 Choose the type of media processing you want to perform
               </p>
             </div>
@@ -286,6 +302,7 @@ export function JobCreationForm({
               onSelectOperation={handleOperationSelect}
               onConfirmSelection={handleOperationConfirm}
               showParameterPreview={true}
+              className=""
             />
           </div>
         )}
@@ -295,13 +312,17 @@ export function JobCreationForm({
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-[#FFFFFFDE]">
                   Upload Your File
                 </h2>
-                <p className="text-sm text-gray-600">
-                  Select a {formState.selectedOperation.media_type} file to process with{" "}
+                <p className="text-sm text-[#A1A1AA]">
+                  Select a {formState.selectedOperation.media_type} file to
+                  process with{" "}
                   <span className="font-medium">
-                    {formState.selectedOperation.operation_name.replace(/_/g, " ")}
+                    {formState.selectedOperation.operation_name.replace(
+                      /_/g,
+                      " "
+                    )}
                   </span>
                 </p>
               </div>
@@ -309,9 +330,9 @@ export function JobCreationForm({
                 variant="ghost"
                 size="sm"
                 onClick={handleBack}
-                className="text-gray-500"
+                leftIcon={<ArrowLeft className="h-4 w-4" />}
+                className="text-gray-400 hover:text-gray-800 cursor-pointer"
               >
-                <ArrowLeft className="h-4 w-4 mr-1" />
                 Back
               </Button>
             </div>
@@ -320,15 +341,22 @@ export function JobCreationForm({
               onFileSelect={handleFileSelect}
               onFileClear={handleFileRemove}
               selectedFile={formState.selectedFile}
-              acceptedMediaTypes={formState.selectedOperation ? [formState.selectedOperation.media_type] : undefined}
+              acceptedMediaTypes={
+                formState.selectedOperation
+                  ? [formState.selectedOperation.media_type]
+                  : undefined
+              }
               maxFileSize={maxFileSize}
             />
 
             {formState.selectedFile && (
               <div className="flex justify-end">
-                <Button onClick={() => setCurrentStep("parameters")}>
+                <Button
+                  onClick={() => setCurrentStep("parameters")}
+                  leftIcon={<ArrowRight className="h-4 w-4" />}
+                  className="cursor-pointer"
+                >
                   Continue
-                  <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             )}
@@ -340,67 +368,86 @@ export function JobCreationForm({
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-[#FFFFFFDE]">
                   Configure Parameters
                 </h2>
-                <p className="text-sm text-gray-600">
-                  Adjust the settings for your {formState.selectedOperation.operation_name.replace(/_/g, " ")} operation
+                <p className="text-sm text-[#A1A1AA]">
+                  Adjust the settings for your{" "}
+                  {formState.selectedOperation.operation_name.replace(
+                    /_/g,
+                    " "
+                  )}{" "}
+                  operation
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleBack}
-                className="text-gray-500"
+                leftIcon={<ArrowLeft className="h-4 w-4" />}
+                className="cursor-pointer text-white hover:text-gray-800"
               >
-                <ArrowLeft className="h-4 w-4 mr-1" />
                 Back
               </Button>
             </div>
 
-            {/* File preview summary */}
-            {formState.selectedFile && (
-              <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <Upload className="h-5 w-5 text-blue-600" />
+            {formState.selectedOperation.operation_name === "image_resize" &&
+            formState.selectedFile ? (
+              <ImageResizeConfigurator
+                file={formState.selectedFile}
+                operation={formState.selectedOperation}
+                onChange={handleImageResizeChange}
+              />
+            ) : (
+              <>
+                {formState.selectedFile && (
+                  <div className="bg-[#1a1a1e] rounded-lg p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <Upload className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-300">
+                          {formState.selectedFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(
+                            formState.selectedFile.size /
+                            (1024 * 1024)
+                          ).toFixed(2)}{" "}
+                          MB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleFileRemove}
+                      className="cursor-pointer hover:text-red-500"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {formState.selectedFile.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {(formState.selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleFileRemove}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+                )}
+
+                {/* Generic Parameter Form */}
+                <ParameterForm
+                  operation={formState.selectedOperation}
+                  onChange={handleParametersChange}
+                  validateOnMount={false}
+                  validateOnChange={true}
+                />
+              </>
             )}
 
-            {/* Parameter Form */}
-            <ParameterForm
-              operation={formState.selectedOperation}
-              onChange={handleParametersChange}
-              validateOnMount={false}
-              validateOnChange={true}
-            />
-
             {/* Submit Button */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="items-center justify-between pt-4 border-t border-gray-400 hidden md:flex">
               <Button
                 variant="outline"
                 onClick={handleReset}
-                className="text-gray-600"
+                leftIcon={<RotateCcw className="h-4 w-4" />}
+                className="text-gray-400 cursor-pointer hover:text-gray-800"
               >
-                <RotateCcw className="h-4 w-4 mr-1" />
                 Start Over
               </Button>
 
@@ -408,8 +455,30 @@ export function JobCreationForm({
                 onClick={handleSubmit}
                 disabled={!canSubmit}
                 size="lg"
+                leftIcon={<Play className="h-5 w-5" />}
+                className="cursor-pointer"
               >
-                <Play className="h-4 w-4 mr-2" />
+                Start Processing
+              </Button>
+            </div>
+
+            <div className="flex md:hidden items-center justify-between pt-4 border-t border-gray-400">
+              <Button
+                variant="outline"
+                onClick={handleReset}
+                leftIcon={<RotateCcw className="h-4 w-4" />}
+                className="text-gray-400 cursor-pointer hover:text-gray-800"
+              >
+                Start Over
+              </Button>
+
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                size="md"
+                leftIcon={<Play className="h-4 w-4" />}
+                className="cursor-pointer"
+              >
                 Start Processing
               </Button>
             </div>
@@ -419,24 +488,19 @@ export function JobCreationForm({
         {/* Step 4: Submitting/Processing */}
         {currentStep === "submitting" && (
           <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {isUploading
-                  ? "Uploading File..."
-                  : isCreating
-                  ? "Creating Job..."
-                  : createdJob
-                  ? "Job Created!"
-                  : createError
-                  ? "Job Creation Failed"
-                  : "Processing..."}
-              </h2>
-            </div>
+            {/* Header - Only show during upload/creation phase */}
+            {(isUploading || isCreating) && (
+              <div className="text-center">
+                <h2 className="text-lg font-semibold text-gray-300">
+                  {isUploading ? "Uploading File..." : "Creating Job..."}
+                </h2>
+              </div>
+            )}
 
             {/* Upload Progress */}
             {(isUploading || isCreating) && progress && (
               <UploadProgress
-                status={isUploading ? "uploading" : "success"}
+                status={uploadStatus}
                 progress={progress}
                 fileName={formState.selectedFile?.name || ""}
                 onCancel={cancelUpload}
@@ -447,49 +511,45 @@ export function JobCreationForm({
             {isCreating && !isUploading && (
               <div className="flex flex-col items-center gap-4 py-8">
                 <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
-                <p className="text-gray-600">Setting up your processing job...</p>
+                <p className="text-gray-400">
+                  Setting up your processing job...
+                </p>
               </div>
             )}
 
-            {/* Success State */}
+            {/* Job Progress Tracker - Shows after job is created */}
             {createdJob && !isCreating && (
-              <div className="flex flex-col items-center gap-4 py-8">
-                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="h-8 w-8 text-green-600" />
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-900 font-medium">
-                    Job created successfully!
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Job ID: <code className="bg-gray-100 px-2 py-0.5 rounded text-xs">{createdJob.id}</code>
-                  </p>
-                </div>
-                <Button onClick={handleReset} variant="outline">
-                  Create Another Job
-                </Button>
-              </div>
+              <JobProgressTracker job={createdJob} onReset={handleReset} />
             )}
 
-            {/* Error State */}
+            {/* Error State - Job creation failed */}
             {createError && !isCreating && (
               <div className="flex flex-col items-center gap-4 py-8">
                 <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
                   <AlertCircle className="h-8 w-8 text-red-600" />
                 </div>
-                <div className="text-center">
+                <div className="text-center max-w-md">
                   <p className="text-gray-900 font-medium">
                     Failed to create job
                   </p>
-                  <p className="text-sm text-red-600 mt-1">{createError}</p>
+                  <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200 text-left">
+                    <p className="text-sm text-red-700">{createError}</p>
+                  </div>
                 </div>
                 <div className="flex gap-3">
-                  <Button onClick={handleBack} variant="outline">
-                    <ArrowLeft className="h-4 w-4 mr-1" />
+                  <Button
+                    onClick={handleBack}
+                    variant="outline"
+                    leftIcon={<ArrowLeft className="h-4 w-4" />}
+                    className="cursor-pointer"
+                  >
                     Go Back
                   </Button>
-                  <Button onClick={handleSubmit}>
-                    <RotateCcw className="h-4 w-4 mr-1" />
+                  <Button
+                    onClick={handleSubmit}
+                    leftIcon={<RotateCcw className="h-4 w-4" />}
+                    className="cursor-pointer"
+                  >
                     Try Again
                   </Button>
                 </div>

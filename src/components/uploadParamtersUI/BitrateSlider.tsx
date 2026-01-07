@@ -6,23 +6,30 @@
  * A specialized slider component for selecting video/audio quality.
  * Provides visual feedback with quality labels and estimated file sizes.
  *
- * Supports two modes:
+ * Features:
+ * - Smooth sliding experience
+ * - Snaps to nearest valid value on release
+ * - Visual tick marks for valid values
+ * - Preset buttons for quick selection
+ *
+ * Supports three modes:
  * - CRF mode (for video quality): 18-28, lower = better quality
  * - Bitrate mode (for audio): Common bitrates like 128k, 192k, 320k
+ * - Image quality mode: 1-100, higher = better quality
  */
 
 'use client';
 
-import { useId, useCallback, useMemo } from "react";
+import { useState, useId, useCallback, useMemo, useRef } from "react";
 import { clsx } from "clsx";
 import { Gauge, AlertCircle, HelpCircle } from "lucide-react";
 
 export interface QualityPreset {
-    value: number;
-    label: string;
-    description: string;
-    fileSize: string;
-};
+  value: number;
+  label: string;
+  description: string;
+  fileSize: string;
+}
 
 export const VIDEO_QUALITY_PRESETS: QualityPreset[] = [
   {
@@ -58,11 +65,11 @@ export const VIDEO_QUALITY_PRESETS: QualityPreset[] = [
 ];
 
 export interface AudioBitratePreset {
-    value: string;
-    numericValue: number;
-    label: string;
-    description: string;
-};
+  value: string;
+  numericValue: number;
+  label: string;
+  description: string;
+}
 
 export const AUDIO_BITRATE_PRESETS: AudioBitratePreset[] = [
   {
@@ -84,16 +91,28 @@ export const AUDIO_BITRATE_PRESETS: AudioBitratePreset[] = [
     description: "Standard quality",
   },
   {
+    value: "160k",
+    numericValue: 160,
+    label: "160 kbps",
+    description: "Good quality",
+  },
+  {
     value: "192k",
     numericValue: 192,
     label: "192 kbps",
-    description: "Good quality",
+    description: "Great quality",
+  },
+  {
+    value: "224k",
+    numericValue: 224,
+    label: "224 kbps",
+    description: "High quality",
   },
   {
     value: "256k",
     numericValue: 256,
     label: "256 kbps",
-    description: "High quality",
+    description: "Very high quality",
   },
   {
     value: "320k",
@@ -102,6 +121,9 @@ export const AUDIO_BITRATE_PRESETS: AudioBitratePreset[] = [
     description: "Maximum quality",
   },
 ];
+
+// Valid bitrate values for snapping
+const VALID_BITRATES = [64, 96, 128, 160, 192, 224, 256, 320];
 
 export const IMAGE_QUALITY_PRESETS: QualityPreset[] = [
   {
@@ -141,77 +163,108 @@ export interface BitrateSliderProps {
   disabled?: boolean;
   showPresets?: boolean;
   showValueLabel?: boolean;
+  showTickMarks?: boolean;
   className?: string;
-};
+}
 
+interface ModeConfig {
+  min: number;
+  max: number;
+  step: number;
+  validValues: number[] | null; // null means continuous (any value is valid)
+  presets: QualityPreset[];
+  isInverted: boolean;
+  formatValue: (v: number) => string;
+  parseValue: (v: string | number) => number;
+  snapToNearest: (v: number) => number;
+}
 
-function getModeConfig(mode: QualityMode) {
-    switch (mode) {
-      case "video-crf":
-        return {
-          min: 18,
-          max: 28,
-          step: 1,
-          presets: VIDEO_QUALITY_PRESETS,
-          isInverted: true, // Lower is better
-          formatValue: (v: number) => v.toString(),
-          parseValue: (v: string | number) =>
-            typeof v === "string" ? parseInt(v, 10) : v,
-        };
-      case "audio-bitrate":
-        return {
-          min: 64,
-          max: 320,
-          step: 32,
-          presets: AUDIO_BITRATE_PRESETS.map((p) => ({
-            value: p.numericValue,
-            label: p.label,
-            description: p.description,
-            fileSize: "",
-          })),
-          isInverted: false, // Higher is better
-          formatValue: (v: number) => `${v}k`,
-          parseValue: (v: string | number) => {
-            if (typeof v === "string") {
-              return parseInt(v.replace("k", ""), 10);
+function getModeConfig(mode: QualityMode): ModeConfig {
+  switch (mode) {
+    case "video-crf":
+      return {
+        min: 18,
+        max: 28,
+        step: 1,
+        validValues: null, // Any integer 18-28 is valid
+        presets: VIDEO_QUALITY_PRESETS,
+        isInverted: true, // Lower is better
+        formatValue: (v: number) => v.toString(),
+        parseValue: (v: string | number) =>
+          typeof v === "string" ? parseInt(v, 10) : v,
+        snapToNearest: (v: number) => Math.round(v),
+      };
+    case "audio-bitrate":
+      return {
+        min: 64,
+        max: 320,
+        step: 1, // Smooth sliding with step=1
+        validValues: VALID_BITRATES,
+        presets: AUDIO_BITRATE_PRESETS.map((p) => ({
+          value: p.numericValue,
+          label: p.label,
+          description: p.description,
+          fileSize: "",
+        })),
+        isInverted: false, // Higher is better
+        formatValue: (v: number) => `${v}k`,
+        parseValue: (v: string | number) => {
+          if (typeof v === "string") {
+            return parseInt(v.replace("k", ""), 10);
+          }
+          return v;
+        },
+        snapToNearest: (v: number) => {
+          // Find the closest valid bitrate
+          let closest = VALID_BITRATES[0];
+          let minDiff = Math.abs(v - closest);
+          for (const bitrate of VALID_BITRATES) {
+            const diff = Math.abs(v - bitrate);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closest = bitrate;
             }
-            return v;
-          },
-        };
-      case "image-quality":
-        return {
-          min: 1,
-          max: 100,
-          step: 1,
-          presets: IMAGE_QUALITY_PRESETS,
-          isInverted: false, // Higher is better
-          formatValue: (v: number) => v.toString(),
-          parseValue: (v: string | number) =>
-            typeof v === "string" ? parseInt(v, 10) : v,
-        };
-      default:
-        return {
-          min: 0,
-          max: 100,
-          step: 1,
-          presets: [],
-          isInverted: false,
-          formatValue: (v: number) => v.toString(),
-          parseValue: (v: string | number) =>
-            typeof v === "string" ? parseInt(v, 10) : v,
-        };
-    }
-};
-
+          }
+          return closest;
+        },
+      };
+    case "image-quality":
+      return {
+        min: 1,
+        max: 100,
+        step: 1,
+        validValues: null, // Any integer 1-100 is valid
+        presets: IMAGE_QUALITY_PRESETS,
+        isInverted: false, // Higher is better
+        formatValue: (v: number) => v.toString(),
+        parseValue: (v: string | number) =>
+          typeof v === "string" ? parseInt(v, 10) : v,
+        snapToNearest: (v: number) => Math.round(v),
+      };
+    default:
+      return {
+        min: 0,
+        max: 100,
+        step: 1,
+        validValues: null,
+        presets: [],
+        isInverted: false,
+        formatValue: (v: number) => v.toString(),
+        parseValue: (v: string | number) =>
+          typeof v === "string" ? parseInt(v, 10) : v,
+        snapToNearest: (v: number) => Math.round(v),
+      };
+  }
+}
 
 function getQualityLabel(value: number, mode: QualityMode): { label: string; color: string } {
   const config = getModeConfig(mode);
   const { min, max, isInverted } = config;
-  
+
   // Normalize value to 0-1 range
   let normalized = (value - min) / (max - min);
   if (isInverted) normalized = 1 - normalized;
-  
+
   if (normalized >= 0.8) {
     return { label: "Excellent", color: "text-green-600" };
   } else if (normalized >= 0.6) {
@@ -223,8 +276,7 @@ function getQualityLabel(value: number, mode: QualityMode): { label: string; col
   } else {
     return { label: "Minimum", color: "text-red-600" };
   }
-};
-
+}
 
 export function BitrateSlider({
   value,
@@ -232,13 +284,13 @@ export function BitrateSlider({
   mode = "video-crf",
   min: propMin,
   max: propMax,
-  step: propStep,
   label = "Quality",
   helperText,
   error,
   disabled = false,
   showPresets = true,
   showValueLabel = true,
+  showTickMarks = true,
   className,
 }: BitrateSliderProps) {
   const generatedId = useId();
@@ -247,42 +299,81 @@ export function BitrateSlider({
   const helperId = `${sliderId}-helper`;
   const hasError = Boolean(error);
 
+  // Track if user is currently dragging
+  const isDraggingRef = useRef(false);
+
   // Get mode configuration
   const config = useMemo(() => getModeConfig(mode), [mode]);
 
   const min = propMin ?? config.min;
   const max = propMax ?? config.max;
-  const step = propStep ?? config.step;
 
   // Parse current value to numeric
   const numericValue = useMemo(() => {
     return config.parseValue(value);
   }, [value, config]);
 
-  // Get quality label
-  const qualityInfo = useMemo(() => {
-    return getQualityLabel(numericValue, mode);
-  }, [numericValue, mode]);
+  // Internal state for smooth dragging (shows current drag position)
+  const [dragValue, setDragValue] = useState<number | null>(null);
 
-  // Handle slider change
+  // The displayed value (drag value while dragging, otherwise actual value)
+  const displayedValue = dragValue ?? numericValue;
+
+  // Get quality label based on displayed value
+  const qualityInfo = useMemo(() => {
+    return getQualityLabel(displayedValue, mode);
+  }, [displayedValue, mode]);
+
+  // Handle slider input (while dragging)
+  const handleInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = parseInt(e.target.value, 10);
+      isDraggingRef.current = true;
+      setDragValue(newValue);
+    },
+    []
+  );
+
+  // Handle slider change (on release / after dragging)
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newNumericValue = parseInt(e.target.value, 10);
+      const rawValue = parseInt(e.target.value, 10);
+      const snappedValue = config.snapToNearest(rawValue);
+
+      isDraggingRef.current = false;
+      setDragValue(null);
 
       // For audio bitrate, convert back to string format
       if (mode === "audio-bitrate") {
-        onChange(`${newNumericValue}k`);
+        onChange(`${snappedValue}k`);
       } else {
-        onChange(newNumericValue);
+        onChange(snappedValue);
       }
     },
-    [onChange, mode]
+    [onChange, mode, config]
   );
+
+  // Handle mouse/touch end to ensure we snap
+  const handlePointerUp = useCallback(() => {
+    if (isDraggingRef.current && dragValue !== null) {
+      const snappedValue = config.snapToNearest(dragValue);
+      isDraggingRef.current = false;
+      setDragValue(null);
+
+      if (mode === "audio-bitrate") {
+        onChange(`${snappedValue}k`);
+      } else {
+        onChange(snappedValue);
+      }
+    }
+  }, [dragValue, config, mode, onChange]);
 
   // Handle preset click
   const handlePresetClick = useCallback(
     (presetValue: number) => {
       if (disabled) return;
+
+      setDragValue(null);
 
       if (mode === "audio-bitrate") {
         onChange(`${presetValue}k`);
@@ -295,33 +386,46 @@ export function BitrateSlider({
 
   // Calculate slider background gradient for visual feedback
   const sliderBackground = useMemo(() => {
-    const percentage = ((numericValue - min) / (max - min)) * 100;
+    const percentage = ((displayedValue - min) / (max - min)) * 100;
     return `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
-  }, [numericValue, min, max]);
+  }, [displayedValue, min, max]);
+
+  // Calculate tick mark positions for valid values
+  const tickMarks = useMemo(() => {
+    if (!showTickMarks || !config.validValues) return null;
+
+    return config.validValues.map((val) => ({
+      value: val,
+      position: ((val - min) / (max - min)) * 100,
+      isActive: val === numericValue,
+    }));
+  }, [showTickMarks, config.validValues, min, max, numericValue]);
 
   const ariaDescribedBy = hasError
     ? errorId
     : helperText
-    ? helperId
-    : undefined;
+      ? helperId
+      : undefined;
 
   return (
     <div className={clsx("space-y-3", className)}>
       {/* Header with label and value */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <label
-            htmlFor={sliderId}
-            className="block text-sm font-medium text-gray-700"
-          >
-            {label}
-          </label>
+          {label && (
+            <label
+              htmlFor={sliderId}
+              className="block text-sm font-medium text-gray-300"
+            >
+              {label}
+            </label>
+          )}
           {helperText && (
             <div className="group relative">
               <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
-              <div className="invisible group-hover:visible absolute z-10 w-48 p-2 mt-1 text-xs text-white bg-gray-900 rounded-md shadow-lg left-0">
+              <div className="invisible group-hover:visible absolute z-999 w-48 p-2 mt-1 text-xs text-white bg-[#1a1a1e] rounded-md shadow-lg left-0">
                 {helperText}
-                <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-900 rotate-45" />
+                <div className="absolute -top-1 left-2 w-2 h-2 bg-[#1a1a1e] rotate-45" />
               </div>
             </div>
           )}
@@ -330,38 +434,57 @@ export function BitrateSlider({
         {showValueLabel && (
           <div className="flex items-center gap-2">
             <Gauge className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-900">
-              {config.formatValue(numericValue)}
+            <span className="text-sm font-medium text-gray-400 min-w-15 text-right">
+              {config.formatValue(displayedValue)}
             </span>
-            <span className={clsx("text-xs font-medium", qualityInfo.color)}>
+            <span className={clsx("text-xs font-medium min-w-17.5", qualityInfo.color)}>
               ({qualityInfo.label})
             </span>
           </div>
         )}
       </div>
 
-      {/* Slider */}
-      <div className="relative">
+      {/* Slider container */}
+      <div className="relative pt-1 pb-4">
+        {/* Tick marks for valid values */}
+        {tickMarks && (
+          <div className="absolute inset-x-0 top-3 h-2 pointer-events-none">
+            {tickMarks.map((tick) => (
+              <div
+                key={tick.value}
+                className={clsx(
+                  "absolute w-1 h-3 rounded-full transform -translate-x-1/2 -translate-y-1/2",
+                  tick.isActive ? "bg-blue-600" : "bg-gray-300"
+                )}
+                style={{ left: `${tick.position}%`, top: "50%" }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* The actual slider */}
         <input
           id={sliderId}
           type="range"
           min={min}
           max={max}
-          step={step}
-          value={numericValue}
+          step={1}
+          value={displayedValue}
+          onInput={handleInput}
           onChange={handleChange}
+          onMouseUp={handlePointerUp}
+          onTouchEnd={handlePointerUp}
+          onBlur={handlePointerUp}
           disabled={disabled}
           aria-invalid={hasError}
           aria-describedby={ariaDescribedBy}
           aria-valuemin={min}
           aria-valuemax={max}
-          aria-valuenow={numericValue}
-          aria-valuetext={`${config.formatValue(numericValue)} - ${
-            qualityInfo.label
-          }`}
+          aria-valuenow={displayedValue}
+          aria-valuetext={`${config.formatValue(displayedValue)} - ${qualityInfo.label}`}
           style={{ background: sliderBackground }}
           className={clsx(
-            "w-full h-2 rounded-lg appearance-none cursor-pointer",
+            "w-full h-2 rounded-lg appearance-none cursor-pointer relative z-10",
             "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "[&::-webkit-slider-thumb]:appearance-none",
@@ -374,7 +497,9 @@ export function BitrateSlider({
             "[&::-webkit-slider-thumb]:shadow-md",
             "[&::-webkit-slider-thumb]:cursor-pointer",
             "[&::-webkit-slider-thumb]:transition-transform",
+            "[&::-webkit-slider-thumb]:duration-100",
             "[&::-webkit-slider-thumb]:hover:scale-110",
+            "[&::-webkit-slider-thumb]:active:scale-95",
             "[&::-moz-range-thumb]:h-5",
             "[&::-moz-range-thumb]:w-5",
             "[&::-moz-range-thumb]:rounded-full",
@@ -387,11 +512,31 @@ export function BitrateSlider({
           )}
         />
 
-        {/* Min/Max labels */}
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>{config.isInverted ? "Best" : "Low"}</span>
-          <span>{config.isInverted ? "Lower" : "Best"}</span>
-        </div>
+        {/* Value labels below slider */}
+        {tickMarks && (
+          <div className="absolute inset-x-0 top-6 pointer-events-none">
+            {tickMarks.map((tick) => (
+              <span
+                key={tick.value}
+                className={clsx(
+                  "absolute text-[10px] transform -translate-x-1/2",
+                  tick.isActive ? "text-blue-600 font-medium" : "text-gray-400"
+                )}
+                style={{ left: `${tick.position}%` }}
+              >
+                {tick.value}k
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Min/Max labels for non-tick modes */}
+        {!tickMarks && (
+          <div className="flex justify-between text-xs text-gray-300 mt-1">
+            <span>{config.isInverted ? "Best" : "Low"}</span>
+            <span>{config.isInverted ? "Lower" : "Best"}</span>
+          </div>
+        )}
       </div>
 
       {/* Preset buttons */}
@@ -406,13 +551,13 @@ export function BitrateSlider({
                 onClick={() => handlePresetClick(preset.value)}
                 disabled={disabled}
                 className={clsx(
-                  "px-3 py-1.5 text-xs font-medium rounded-full",
-                  "transition-colors duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+                  "px-3 py-1.5 text-xs font-medium rounded-full cursor-pointer",
+                  "transition-all duration-200",
+                  "focus:outline-none",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   isSelected
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-[#1b64da] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                 )}
                 title={preset.description}
               >
@@ -425,7 +570,7 @@ export function BitrateSlider({
 
       {/* Current preset description */}
       {showPresets && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-400">
           {(() => {
             const currentPreset = config.presets.find(
               (p) => p.value === numericValue
@@ -456,8 +601,7 @@ export function BitrateSlider({
       )}
     </div>
   );
-};
-
+}
 
 export function VideoQualitySlider(
   props: Omit<BitrateSliderProps, "mode" | "min" | "max" | "step">
@@ -470,10 +614,10 @@ export function VideoQualitySlider(
       helperText={
         props.helperText ?? "Lower values = better quality, larger files"
       }
+      showTickMarks={false}
     />
   );
-};
-
+}
 
 export function AudioBitrateSlider(
   props: Omit<BitrateSliderProps, "mode" | "min" | "max" | "step">
@@ -486,10 +630,10 @@ export function AudioBitrateSlider(
       helperText={
         props.helperText ?? "Higher values = better quality, larger files"
       }
+      showTickMarks={true}
     />
   );
-};
-
+}
 
 export function ImageQualitySlider(
   props: Omit<BitrateSliderProps, "mode" | "min" | "max" | "step">
@@ -502,6 +646,7 @@ export function ImageQualitySlider(
       helperText={
         props.helperText ?? "Higher values = better quality, larger files"
       }
+      showTickMarks={false}
     />
   );
-};
+}

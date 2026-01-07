@@ -7,13 +7,27 @@ import axios, {
     InternalAxiosRequestConfig,
 } from 'axios';
 
+
+export interface ApiFieldError {
+    field: string;
+    message: string;
+}
+
+export interface ApiNestedError {
+    code?: string;
+    message?: string;
+    errors?: ApiFieldError[];
+    details?: unknown;
+}
+
 export interface ApiErrorResponse {
-    error?: string;
+    error?: string | ApiNestedError;
     message?: string;
     detail?: string;
-    errors?: Record<string, string[]>;
+    errors?: Record<string, string[]> | ApiFieldError[];
     code?: string;
     status?: number;
+    success?: boolean;
 };
 
 // Parsed error with user-friendly message
@@ -22,9 +36,11 @@ export interface ParsedApiError {
     code: string;
     status: number;
     fieldErrors: Record<string, string[]>;
+    validationErrors: ApiFieldError[];
     isNetworkError: boolean;
     isServerError: boolean;
     isClientError: boolean;
+    isValidationError: boolean;
     raw: AxiosError<ApiErrorResponse>;
 };
 
@@ -43,17 +59,58 @@ const DEFAULT_TIMEOUT = 30000;
 export const UPLOAD_TIMEOUT = 5 * 60 * 1000;
 
 
+function extractValidationErrors(data: ApiErrorResponse | undefined): ApiFieldError[] {
+    if (!data) return [];
+    
+    // Check for nested error object with errors array
+    if (data.error && typeof data.error === 'object') {
+        const nestedError = data.error as ApiNestedError;
+        if (Array.isArray(nestedError.errors)) {
+            return nestedError.errors.filter(
+                (e): e is ApiFieldError => 
+                    e && typeof e === 'object' && typeof e.message === 'string'
+            );
+        }
+    }
+    
+    // Check for top-level errors array
+    if (Array.isArray(data.errors)) {
+        return data.errors.filter(
+            (e): e is ApiFieldError => 
+                e && typeof e === 'object' && typeof e.message === 'string'
+        );
+    }
+    
+    return [];
+}
+
+
 // Extract the most appropriate error message from various error formats
 function extractErrorMessage(data: ApiErrorResponse | undefined): string { 
     if (!data) return 'An unknown error occurred.';
 
-    if (data.message) return data.message;
-    if (data.detail) return data.detail;
-    if (data.error) return data.error;
+    const validationErrors = extractValidationErrors(data);
+    if (validationErrors.length > 0) {
+        return validationErrors[0].message;
+    }
 
-    if (data.errors && Object.keys(data.errors).length > 0) { 
-        const firstField = Object.keys(data.errors)[0];
-        const firstError = data.errors[firstField]?.[0];
+    if (typeof data.message === 'string' && data.message) return data.message;
+    
+    if (typeof data.detail === 'string' && data.detail) return data.detail;
+    
+    if (data.error) {
+        if (typeof data.error === 'string') {
+            return data.error;
+        }
+        if (typeof data.error === 'object' && data.error.message) {
+            return data.error.message;
+        }
+    }
+
+    if (data.errors && !Array.isArray(data.errors) && Object.keys(data.errors).length > 0) { 
+        const errorsRecord = data.errors as Record<string, string[]>;
+        const firstField = Object.keys(errorsRecord)[0];
+        const firstError = errorsRecord[firstField]?.[0];
         if (firstError) {
             return `${firstField}: ${firstError}`;
         }
@@ -62,15 +119,30 @@ function extractErrorMessage(data: ApiErrorResponse | undefined): string {
     return 'An unknown error occurred.';
 };
 
-
-// Extract field-level validation errors
+// Extract field-specific errors into a Record format
 function extractFieldErrors(
   data: ApiErrorResponse | undefined
 ): Record<string, string[]> {
-  if (!data?.errors) {
+    if (!data) return {};
+    
+    const validationErrors = extractValidationErrors(data);
+    if (validationErrors.length > 0) {
+        const result: Record<string, string[]> = {};
+        for (const err of validationErrors) {
+            const field = err.field || 'general';
+            if (!result[field]) {
+                result[field] = [];
+            }
+            result[field].push(err.message);
+        }
+        return result;
+    }
+    
+    if (data.errors && !Array.isArray(data.errors)) {
+        return data.errors;
+    }
+    
     return {};
-  }
-  return data.errors;
 };
 
 
@@ -78,15 +150,25 @@ function extractFieldErrors(
 export function parseApiError(error: AxiosError<ApiErrorResponse>): ParsedApiError { 
     const status = error.response?.status ?? 0;
     const data = error.response?.data;
+    const validationErrors = extractValidationErrors(data);
+    
+    // Check if this is a validation error
+    let code = data?.code ?? error.code ?? 'UNKNOWN_ERROR';
+    if (data?.error && typeof data.error === 'object') {
+        code = (data.error as ApiNestedError).code ?? code;
+    }
+    const isValidationError = code === 'VALIDATION_ERROR' || status === 400;
 
     return {
         message: extractErrorMessage(data),
-        code: data?.code ?? error.code ?? 'UNKNOWN_ERROR',
+        code,
         status,
         fieldErrors: extractFieldErrors(data),
+        validationErrors,
         isNetworkError: !error.response && error.code === 'ERR_NETWORK',
         isServerError: status >= 500,
         isClientError: status >= 400 && status < 500,
+        isValidationError,
         raw: error,
     };
 };

@@ -248,8 +248,19 @@ export function DownloadButton({
         disabled={disabled || isDownloading}
         className={className}
         title={isDownloading ? "Downloading..." : "Download"}
+        leftIcon={
+          isDownloading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isCompleted ? (
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          ) : isError ? (
+            <XCircle className="h-4 w-4 text-red-600" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )
+        }
       >
-        {isDownloading ? (
+        {/* {isDownloading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : isCompleted ? (
           <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -257,7 +268,7 @@ export function DownloadButton({
           <XCircle className="h-4 w-4 text-red-600" />
         ) : (
           <Download className="h-4 w-4" />
-        )}
+        )} */}
       </Button>
     );
   }
@@ -275,9 +286,9 @@ export function DownloadButton({
             variant="outline"
             size={size}
             onClick={handleRetry}
-            className="w-full"
+            className="w-full cursor-pointer"
+            leftIcon={<RefreshCw className="h-4 w-4" />}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
             Retry Download
           </Button>
         )}
@@ -299,6 +310,7 @@ export function DownloadButton({
             size={size}
             onClick={handleCancel}
             title="Cancel download"
+            className="cursor-pointer"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -323,8 +335,8 @@ export function DownloadButton({
         size={size}
         onClick={handleReDownload}
         className={`${className}`}
+        leftIcon={<CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />}
       >
-        <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
         Downloaded
         {showSize && state.total > 0 && (
           <span className="ml-1 text-muted-foreground">
@@ -343,8 +355,8 @@ export function DownloadButton({
       onClick={handleDownload}
       disabled={disabled}
       className={className}
+      leftIcon={<Download className="h-4 w-4" />}
     >
-      <Download className="h-4 w-4 mr-2" />
       Download
     </Button>
   );

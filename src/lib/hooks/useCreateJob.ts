@@ -9,6 +9,7 @@ import {
     isUploadCancelled,
     isUploadError
 } from "../api";
+import type { UploadStatus } from "./useUpload";
 import { queryKeys } from "../api/queryClient";
 import type { Job, CreateJobParams, JsonObject } from "@/types";
 
@@ -21,6 +22,7 @@ export interface CreateJobInput {
 export interface CreateJobState {
   isCreating: boolean;
   isUploading: boolean;
+  uploadStatus: UploadStatus;
   progress: UploadProgress | null;
   error: string | null;
   createdJob: Job | null;
@@ -66,6 +68,7 @@ export function useCreateJob(
 
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
 
   
   const mutation = useMutation<
@@ -79,6 +82,7 @@ export function useCreateJob(
       abortControllerRef.current = new AbortController();
 
       setIsUploading(true);
+      setUploadStatus('uploading');
       setProgress(null);
       onStart?.();
 
@@ -87,6 +91,9 @@ export function useCreateJob(
           signal: abortControllerRef.current.signal,
           onProgress: (uploadProgress) => {
             setProgress(uploadProgress);
+            if (uploadProgress.percentage >= 100) {
+              setUploadStatus('saving');
+            }
             onProgress?.(uploadProgress);
           },
         });
@@ -99,8 +106,9 @@ export function useCreateJob(
     },
 
     onSuccess: (result) => {
-      // Set progress to 100% on success
+      // Set progress to 100% and status to success
       setProgress((prev) => (prev ? { ...prev, percentage: 100 } : null));
+      setUploadStatus('success');
 
       // Invalidate jobs list to refresh
       if (invalidateJobsOnSuccess) {
@@ -114,10 +122,12 @@ export function useCreateJob(
       setProgress(null);
 
       if (isUploadCancelled(error)) {
+        setUploadStatus('cancelled');
         onCancel?.();
         return;
       }
 
+      setUploadStatus('error');
       onError?.(error);
     },
   });
@@ -153,6 +163,7 @@ export function useCreateJob(
       abortControllerRef.current = null;
     }
     setIsUploading(false);
+    setUploadStatus('cancelled');
     setProgress(null);
   }, []);
 
@@ -161,6 +172,7 @@ export function useCreateJob(
     mutation.reset();
     setProgress(null);
     setIsUploading(false);
+    setUploadStatus('idle');
   }, [cancel, mutation]);
 
   // Derive error message
@@ -174,6 +186,7 @@ export function useCreateJob(
     // State
     isCreating: mutation.isPending,
     isUploading,
+    uploadStatus,
     progress,
     error: errorMessage,
     createdJob: mutation.data?.job ?? null,

@@ -11,7 +11,7 @@ export interface ParameterSchemaBase {
   default?: unknown;
   min?: Nullable<number>;
   max?: Nullable<number>;
-  choices?: Nullable<string[]>;
+  choices?: Nullable<(string | number)[]>;
 }
 
 export interface IntegerParameterSchema extends ParameterSchemaBase {
@@ -40,8 +40,8 @@ export interface BooleanParameterSchema extends ParameterSchemaBase {
 
 export interface ChoiceParameterSchema extends ParameterSchemaBase {
   type: "choice";
-  default?: string;
-  choices: string[];
+  default?: string | number;
+  choices: (string | number)[];
 }
 
 export type ParameterSchema =
@@ -230,13 +230,19 @@ export function validateParameter(
     }
 
     case "choice": {
-      if (param.choices && !param.choices.includes(String(value))) {
-        return {
-          valid: false,
-          error: `${param.param_name} must be one of: ${param.choices.join(
-            ", "
-          )}`,
-        };
+      if (param.choices) {
+        // Convert both value and choices to strings for comparison
+        // This handles cases where choices might be numbers (e.g., sample_rate: [8000, 44100])
+        const stringValue = String(value);
+        const stringChoices = param.choices.map((c) => String(c));
+        if (!stringChoices.includes(stringValue)) {
+          return {
+            valid: false,
+            error: `${param.param_name} must be one of: ${param.choices.join(
+              ", "
+            )}`,
+          };
+        }
       }
       break;
     }

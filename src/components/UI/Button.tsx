@@ -28,10 +28,10 @@ const baseStyles = clsx(
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary: clsx(
-    "bg-blue-600 text-white",
-    "hover:bg-blue-700",
-    "focus:ring-blue-500",
-    "active:bg-blue-800"
+    "bg-[#6366f1] text-white",
+    "hover:bg-[#4f46e5]",
+    "focus:ring-[#4f46e5]",
+    "active:bg-[#4338ca]"
   ),
   secondary: clsx(
     "bg-gray-100 text-gray-900",
@@ -40,13 +40,13 @@ const variantStyles: Record<ButtonVariant, string> = {
     "active:bg-gray-300"
   ),
   outline: clsx(
-    "border-2 border-gray-300 bg-transparent text-gray-700",
+    "border-2 border-gray-300 bg-transparent text-gray-400",
     "hover:bg-gray-50 hover:border-gray-400",
     "focus:ring-gray-500",
     "active:bg-gray-100"
   ),
   ghost: clsx(
-    "bg-transparent text-gray-700",
+    "bg-transparent text-gray-400",
     "hover:bg-gray-100",
     "focus:ring-gray-500",
     "active:bg-gray-200"
@@ -62,8 +62,8 @@ const variantStyles: Record<ButtonVariant, string> = {
 
 const sizeStyles: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-sm gap-1.5",
-  md: "px-4 py-2 text-sm gap-2",
-  lg: "px-6 py-3 text-base gap-2",
+  md: "px-3 py-2 text-sm gap-2",
+  lg: "px-5 py-3 text-base gap-2",
 };
 
 const iconSizeStyles: Record<ButtonSize, string> = {
@@ -100,7 +100,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           baseStyles,
           variantStyles[variant],
           sizeStyles[size],
-          fullWidth && "w-full",
+          fullWidth && "w-full ",
           className
         )}
         {...props}

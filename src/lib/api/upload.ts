@@ -135,7 +135,12 @@ export async function uploadAndCreateJob(
         // Parse API errors
         if (isAxiosError(error)) { 
             const parsed = parseApiError(error);
-            throw new UploadError(parsed.message, parsed.code, parsed.status);
+            throw new UploadError(
+                parsed.message, 
+                parsed.code, 
+                parsed.status,
+                parsed.validationErrors
+            );
         };
 
         // Unknown error
@@ -245,15 +250,45 @@ export function createUploadController() {
 };
 
 
+export interface ValidationErrorDetail {
+  field: string;
+  message: string;
+}
+
 export class UploadError extends Error {
   code: string;
   status: number;
+  validationErrors: ValidationErrorDetail[];
+  isValidationError: boolean;
 
-  constructor(message: string, code: string, status: number) {
+  constructor(
+    message: string, 
+    code: string, 
+    status: number,
+    validationErrors: ValidationErrorDetail[] = []
+  ) {
     super(message);
     this.name = "UploadError";
     this.code = code;
     this.status = status;
+    this.validationErrors = validationErrors;
+    this.isValidationError = code === 'VALIDATION_ERROR' || status === 400;
+  }
+  
+  
+  getDisplayMessage(): string {
+    if (this.validationErrors.length > 0) {
+      return this.validationErrors[0].message;
+    }
+    return this.message;
+  };
+  
+  
+  getAllValidationMessages(): string {
+    if (this.validationErrors.length === 0) {
+      return this.message;
+    }
+    return this.validationErrors.map(e => e.message).join(' ');
   }
 };
 

@@ -1,28 +1,33 @@
 // src/components/jobsUI/JobCard.tsx
 "use client";
 
-import { memo, useMemo } from "react";
-import { 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Loader2, 
+import { memo, useCallback, useMemo } from "react";
+import {
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Loader2,
   AlertCircle,
   FileVideo,
   FileImage,
   FileAudio,
   File,
-  Download,
   Trash2,
   RotateCcw,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 import { Card } from "../UI/Card";
 import { Badge } from "../UI/Badge";
 import { Button } from "../UI/Button";
 import { Progress } from "../UI/Progress";
+import { DownloadButton } from "../jobsUI/DownloadButton";
 import type { JobListItem, Job } from "@/types";
-import { OperationStatus, isActiveStatus, isFinalStatus } from "@/types/common-types";
+import { useRouter } from "next/navigation";
+import {
+  OperationStatus,
+  isActiveStatus,
+  isFinalStatus,
+} from "@/types/common-types";
 import { formatDistanceToNow, format } from "date-fns";
 
 // Status configuration with colors and icons
@@ -30,7 +35,13 @@ const STATUS_CONFIG: Record<
   string,
   {
     label: string;
-    variant: "default" | "pending" | "processing" | "success" | "danger" | "warning";
+    variant:
+      | "default"
+      | "pending"
+      | "processing"
+      | "success"
+      | "danger"
+      | "warning";
     icon: React.ComponentType<{ className?: string }>;
     animate?: boolean;
   }
@@ -70,23 +81,34 @@ const STATUS_CONFIG: Record<
 interface OperationIconProps {
   operationName: string;
   className?: string;
-};
+}
 
 function OperationIcon({ operationName, className = "" }: OperationIconProps) {
   const lowerName = operationName.toLowerCase();
-  
-  if (lowerName.includes("video") || lowerName.includes("compress") || lowerName.includes("convert_video")) {
+
+  if (
+    lowerName.includes("video") ||
+    lowerName.includes("compress") ||
+    lowerName.includes("convert_video")
+  ) {
     return <FileVideo className={className} />;
   }
-  if (lowerName.includes("image") || lowerName.includes("resize") || lowerName.includes("convert_image")) {
+  if (
+    lowerName.includes("image") ||
+    lowerName.includes("resize") ||
+    lowerName.includes("convert_image")
+  ) {
     return <FileImage className={className} />;
   }
-  if (lowerName.includes("audio") || lowerName.includes("extract_audio") || lowerName.includes("convert_audio")) {
+  if (
+    lowerName.includes("audio") ||
+    lowerName.includes("extract_audio") ||
+    lowerName.includes("convert_audio")
+  ) {
     return <FileAudio className={className} />;
   }
   return <File className={className} />;
-};
-
+}
 
 // Format operation name for display
 function formatOperationName(operationName: string): string {
@@ -96,10 +118,10 @@ function formatOperationName(operationName: string): string {
     .join(" ");
 }
 
-// Format date for display
+
 function formatJobDate(dateString: string | null): string {
   if (!dateString) return "-";
-  
+
   try {
     const date = new Date(dateString);
     return formatDistanceToNow(date, { addSuffix: true });
@@ -110,10 +132,10 @@ function formatJobDate(dateString: string | null): string {
 
 function formatFullDate(dateString: string | null): string {
   if (!dateString) return "-";
-  
+
   try {
     const date = new Date(dateString);
-    return format(date, "PPpp"); // e.g., "Apr 29, 2024, 12:00 PM"
+    return format(date, "PPpp"); 
   } catch {
     return "-";
   }
@@ -130,47 +152,51 @@ export interface JobCardProps {
   showActions?: boolean;
   highlighted?: boolean;
   className?: string;
-};
+}
 
 function JobCardComponent({
   job,
   detailed = false,
   clickable = true,
   onClick,
-  onDownload,
   onDelete,
   onRetry,
   showActions = true,
   highlighted = false,
   className = "",
 }: JobCardProps) {
-  const statusConfig = STATUS_CONFIG[job.status] ?? STATUS_CONFIG[OperationStatus.PENDING];
+  const router = useRouter();
+  const statusConfig =
+    STATUS_CONFIG[job.status] ?? STATUS_CONFIG[OperationStatus.PENDING];
   const StatusIcon = statusConfig.icon;
 
   const isActive = isActiveStatus(job.status);
   const isFinal = isFinalStatus(job.status);
-  const canDownload = job.status === OperationStatus.COMPLETED && 
-    (('has_output' in job && job.has_output) || ('output_file' in job && job.output_file !== null));
+  const canDownload =
+    job.status === OperationStatus.COMPLETED &&
+    (("has_output" in job && job.has_output) ||
+      ("output_file" in job && job.output_file !== null));
   const canRetry = job.status === OperationStatus.FAILED;
-  const canDelete = 'can_be_deleted' in job ? job.can_be_deleted : isFinal;
+  const canDelete = "can_be_deleted" in job ? job.can_be_deleted : isFinal;
 
   // Memoize date formatting
-  const createdAt = useMemo(() => formatJobDate(job.created_at), [job.created_at]);
+  const createdAt = useMemo(
+    () => formatJobDate(job.created_at),
+    [job.created_at]
+  );
   const completedAt = useMemo(
-    () => ('completed_at' in job ? formatJobDate(job.completed_at) : null),
+    () => ("completed_at" in job ? formatJobDate(job.completed_at) : null),
     [job]
   );
-  const fullCreatedDate = useMemo(() => formatFullDate(job.created_at), [job.created_at]);
+  const fullCreatedDate = useMemo(
+    () => formatFullDate(job.created_at),
+    [job.created_at]
+  );
 
   const handleCardClick = () => {
     if (clickable && onClick) {
       onClick(job);
     }
-  };
-
-  const handleDownloadClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDownload?.(job);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -182,6 +208,14 @@ function JobCardComponent({
     e.stopPropagation();
     onRetry?.(job);
   };
+
+  const handleViewDetails = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      router.push(`/jobs/${job.id}`);
+    },
+    [router, job.id]
+  );
 
   return (
     <Card
@@ -204,22 +238,22 @@ function JobCardComponent({
         </div>
       )}
 
-      <div className="p-4">
+      <div className="md:p-4">
         {/* Header: Operation name and status */}
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="shrink-0 p-2 bg-muted rounded-lg">
+            <div className="shrink-0 p-2 border bg-muted rounded-lg">
               <OperationIcon
                 operationName={job.operation}
                 className="h-5 w-5 text-muted-foreground"
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-medium text-sm truncate">
+              <h3 className="font-medium text-gray-400 text-sm md:text-base truncate">
                 {formatOperationName(job.operation)}
               </h3>
               <p
-                className="text-xs text-muted-foreground truncate"
+                className="text-xs text-gray-300 truncate"
                 title={fullCreatedDate}
               >
                 {createdAt}
@@ -241,7 +275,7 @@ function JobCardComponent({
         {/* Progress bar for processing jobs */}
         {isActive && (
           <div className="mb-3">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
               <span>Progress</span>
               <span>{job.progress}%</span>
             </div>
@@ -249,11 +283,10 @@ function JobCardComponent({
           </div>
         )}
 
-        {/* Detailed info for full Job type */}
         {detailed && "input_file" in job && (
           <div className="space-y-2 mb-3 text-sm">
             {job.input_file && (
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between text-gray-300">
                 <span>Input</span>
                 <span
                   className="truncate max-w-50"
@@ -264,7 +297,7 @@ function JobCardComponent({
               </div>
             )}
             {job.output_file && (
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between text-gray-300">
                 <span>Output</span>
                 <span
                   className="truncate max-w-50"
@@ -275,7 +308,7 @@ function JobCardComponent({
               </div>
             )}
             {job.processing_time_formatted && (
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between text-gray-300">
                 <span>Processing Time</span>
                 <span>{job.processing_time_formatted}</span>
               </div>
@@ -283,14 +316,12 @@ function JobCardComponent({
           </div>
         )}
 
-        {/* Completed timestamp */}
         {completedAt && job.status === OperationStatus.COMPLETED && (
-          <p className="text-xs text-muted-foreground mb-3">
+          <p className="text-xs md:text-sm text-gray-300 mb-3">
             Completed {completedAt}
           </p>
         )}
 
-        {/* Error message for failed jobs */}
         {job.status === OperationStatus.FAILED &&
           "error_message" in job &&
           job.error_message && (
@@ -302,7 +333,6 @@ function JobCardComponent({
             </div>
           )}
 
-        {/* Expired indicator */}
         {job.is_expired && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
             <AlertCircle className="h-3 w-3" />
@@ -310,19 +340,19 @@ function JobCardComponent({
           </div>
         )}
 
-        {/* Action buttons */}
         {showActions && (
-          <div className="flex items-center gap-2 pt-2 border-t">
-            {canDownload && !job.is_expired && onDownload && (
-              <Button
+          <div
+            className="flex items-center gap-2 pt-2 border-t border-gray-400"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {canDownload && !job.is_expired && (
+              <DownloadButton
+                job={job}
                 variant="outline"
-                size="sm"
-                onClick={handleDownloadClick}
-                className="flex-1"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Download
-              </Button>
+                size="md"
+                showProgress={true}
+                className="flex-1 hover:text-gray-800 text-gray-300 cursor-pointer"
+              />
             )}
 
             {canRetry && onRetry && (
@@ -330,9 +360,9 @@ function JobCardComponent({
                 variant="outline"
                 size="sm"
                 onClick={handleRetryClick}
-                className="flex-1"
+                className="flex-1 hover:text-gray-800 text-gray-300 cursor-pointer"
+                leftIcon={<RotateCcw className="h-4 w-4" />}
               >
-                <RotateCcw className="h-4 w-4 mr-1" />
                 Retry
               </Button>
             )}
@@ -342,14 +372,19 @@ function JobCardComponent({
                 variant="ghost"
                 size="sm"
                 onClick={handleDeleteClick}
-                className="text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground cursor-pointer hover:text-red-700"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
 
             {clickable && onClick && (
-              <Button variant="ghost" size="sm" className="ml-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto text-muted-foreground hover:text-blue-700 cursor-pointer"
+                onClick={handleViewDetails}
+              >
                 <ExternalLink className="h-4 w-4" />
               </Button>
             )}
@@ -362,26 +397,26 @@ function JobCardComponent({
 
 export const JobCard = memo(JobCardComponent);
 
-// Status Badge component for reuse elsewhere
 export interface JobStatusBadgeProps {
   status: string;
   showIcon?: boolean;
   className?: string;
 }
 
-export function JobStatusBadge({ 
-  status, 
-  showIcon = true, 
-  className = "" 
+export function JobStatusBadge({
+  status,
+  showIcon = true,
+  className = "",
 }: JobStatusBadgeProps) {
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG[OperationStatus.PENDING];
+  const config =
+    STATUS_CONFIG[status] ?? STATUS_CONFIG[OperationStatus.PENDING];
   const Icon = config.icon;
 
   return (
     <Badge variant={config.variant} className={className}>
       {showIcon && (
-        <Icon 
-          className={`h-3 w-3 mr-1 ${config.animate ? "animate-spin" : ""}`} 
+        <Icon
+          className={`h-3 w-3 mr-1 ${config.animate ? "animate-spin" : ""}`}
         />
       )}
       {config.label}
@@ -396,12 +431,13 @@ export interface CompactJobCardProps {
   className?: string;
 }
 
-export function CompactJobCard({ 
-  job, 
-  onClick, 
-  className = "" 
+export function CompactJobCard({
+  job,
+  onClick,
+  className = "",
 }: CompactJobCardProps) {
-  const statusConfig = STATUS_CONFIG[job.status] ?? STATUS_CONFIG[OperationStatus.PENDING];
+  const statusConfig =
+    STATUS_CONFIG[job.status] ?? STATUS_CONFIG[OperationStatus.PENDING];
   const StatusIcon = statusConfig.icon;
   const isActive = isActiveStatus(job.status);
 

@@ -37,20 +37,67 @@ export async function fetchJobs(
     const response = await apiClient.get<
       | ApiSuccessResponse<PaginatedResponse<JobListItem>>
       | PaginatedResponse<JobListItem>
+      | ApiSuccessResponse<JobListItem[]>
+      | JobListItem[]
         >(ApiEndpoints.OPERATIONS, { params });
     
     const data = response.data;
 
+    // Handle wrapped response format: { success: true, data: { results: [...], ... } }
     if (
       data &&
       typeof data === "object" &&
       "data" in data &&
       "success" in data
     ) {
-      return (data as ApiSuccessResponse<PaginatedResponse<JobListItem>>).data;
-    };
+      const innerData = (data as ApiSuccessResponse<PaginatedResponse<JobListItem> | JobListItem[]>).data;
+      
+      // If inner data is an array, wrap it in paginated format
+      if (Array.isArray(innerData)) {
+        return {
+          results: innerData,
+          count: innerData.length,
+          next: null,
+          previous: null,
+        };
+      }
+      
+      // If inner data is paginated, return it
+      if (innerData && typeof innerData === "object" && "results" in innerData) {
+        return innerData as PaginatedResponse<JobListItem>;
+      }
+      
+      // Fallback: return empty results
+      return {
+        results: [],
+        count: 0,
+        next: null,
+        previous: null,
+      };
+    }
 
-    return data as PaginatedResponse<JobListItem>;
+    // Handle direct array response
+    if (Array.isArray(data)) {
+      return {
+        results: data,
+        count: data.length,
+        next: null,
+        previous: null,
+      };
+    }
+
+    // Handle direct paginated response
+    if (data && typeof data === "object" && "results" in data) {
+      return data as PaginatedResponse<JobListItem>;
+    }
+
+    // Fallback: return empty results to prevent undefined
+    return {
+      results: [],
+      count: 0,
+      next: null,
+      previous: null,
+    };
 };
 
 
@@ -152,7 +199,8 @@ export async function fetchRecentJobs(
     ordering: "-created_at",
   });
 
-  return response.results;
+  // Ensure we always return an array
+  return response.results ?? [];
 };
 
 
@@ -165,7 +213,8 @@ export async function fetchJobsByStatus(
     page_size: limit,
   });
 
-  return response.results;
+  // Ensure we always return an array
+  return response.results ?? [];
 };
 
 

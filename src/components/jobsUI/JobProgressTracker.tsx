@@ -148,20 +148,20 @@ export function JobProgressTracker({
   return (
     <div className="space-y-6">
       {/* Job Info Header */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-        <div className="p-3 bg-white rounded-lg shadow-sm">
+      <div className="flex gap-4 p-4 bg-[#1a1a1e] rounded-lg">
+        <div className="p-3 border rounded-lg shadow-sm">
           {getOperationIcon(currentJob.operation)}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900">
+          <h3 className="font-medium text-gray-300">
             {formatOperationName(currentJob.operation)}
           </h3>
-          <p className="text-sm text-gray-500 truncate">
+          {/* <p className="text-sm text-gray-500 truncate">
             Job ID: {currentJob.id.slice(0, 8)}...
-          </p>
+          </p> */}
         </div>
         <div
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${statusDisplay.bgColor} ${statusDisplay.color}`}
+          className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusDisplay.bgColor} ${statusDisplay.color}`}
         >
           {statusDisplay.icon}
           <span className="text-sm font-medium">{statusDisplay.label}</span>
@@ -171,14 +171,14 @@ export function JobProgressTracker({
       {isActive && (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Progress</span>
+            <span className="text-gray-400">Progress</span>
             <div className="flex items-center gap-3">
               {etaFormatted && (
                 <span className="flex items-center gap-1 text-gray-500">
                   <Zap className="h-4 w-4" />~{etaFormatted} remaining
                 </span>
               )}
-              <span className="font-mono text-gray-900">
+              <span className="font-mono text-gray-300">
                 {currentProgress}%
               </span>
             </div>
@@ -202,10 +202,10 @@ export function JobProgressTracker({
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
             <div className="text-center">
-              <p className="text-gray-900 font-medium text-lg">
+              <p className="text-gray-300 font-medium text-lg">
                 Processing Complete!
               </p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-400 mt-1">
                 Your file is ready to download
               </p>
             </div>
@@ -219,10 +219,14 @@ export function JobProgressTracker({
               size="lg"
               showProgress={true}
               showSize={true}
-              className="w-full"
+              className="w-full cursor-pointer"
             />
-            <Button onClick={onReset} variant="outline" className="w-full">
-              <RotateCcw className="h-4 w-4 mr-2" />
+            <Button
+              onClick={onReset}
+              variant="outline"
+              className="w-full cursor-pointer hover:text-gray-800"
+              leftIcon={<RotateCcw className="h-4 w-4" />}
+            >
               Create Another Job
             </Button>
           </div>

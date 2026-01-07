@@ -414,14 +414,18 @@ export default function JobDetailPage() {
   const canDownload = isSuccess && job.output_file && !job.is_expired;
   const canRetry = isFailed;
   const canCancel = isActive;
-  const canDelete = job.can_be_deleted;
+  // const canDelete = job.can_be_deleted;
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
+    <div className="pb-24 md:pb-10 max-w-4xl bg-[#2a2a2e] mx-auto py-8 md:px-4 md:relative md:top-0 md:left-0 md:right-0 md:bottom-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" onClick={handleBack} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
+        <Button
+          variant="ghost"
+          onClick={handleBack}
+          className="cursor-pointer hover:text-gray-800"
+          leftIcon={<ArrowLeft className="h-4 w-4" />}
+        >
           Back
         </Button>
 
@@ -431,12 +435,14 @@ export default function JobDetailPage() {
               variant="outline"
               onClick={handleCancel}
               disabled={isActioning}
+              leftIcon={
+                isCancelling ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2" />
+                )
+              }
             >
-              {isCancelling ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <XCircle className="h-4 w-4 mr-2" />
-              )}
               Cancel
             </Button>
           )}
@@ -446,46 +452,52 @@ export default function JobDetailPage() {
               variant="outline"
               onClick={handleRetry}
               disabled={isActioning}
+              leftIcon={
+                isRetrying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                )
+              }
             >
-              {isRetrying ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RotateCcw className="h-4 w-4 mr-2" />
-              )}
               Retry
             </Button>
           )}
 
-          {canDownload && (
-            <Button onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
+          {/* {canDownload && (
+            <Button
+              variant="primary"
+              onClick={handleDownload}
+              leftIcon={<Download className="h-4 w-4" />}
+              className="cursor-pointer"
+            >
               Download
             </Button>
-          )}
+          )} */}
 
-          {canDelete && (
+          {/* {canDelete && (
             <Button
               variant="ghost"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isActioning}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              className="text-red-500 hover:text-red-600 cursor-pointer"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 
       {/* Main Content */}
       <div className="space-y-6">
         {/* Job Header Card */}
-        <Card className="p-6">
+        <Card className="p-4 rounded-none md:p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold mb-1">
+              <h1 className="text-xl text-gray-300 font-bold mb-1">
                 {formatOperationName(job.operation)}
               </h1>
-              <p className="text-sm text-muted-foreground">Job ID: {job.id}</p>
+              {/* <p className="text-sm text-muted-foreground">Job ID: {job.id}</p> */}
             </div>
             <Badge
               variant={
@@ -536,7 +548,7 @@ export default function JobDetailPage() {
 
           {/* Success message */}
           {isSuccess && (
-            <div className="mt-4 p-4 bg-green-50 rounded-lg">
+            <div className="mt-4 p-3 bg-green-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <p className="font-medium text-green-700">
@@ -560,8 +572,10 @@ export default function JobDetailPage() {
         </Card>
 
         {/* Status Timeline */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Status Timeline</h2>
+        <Card className="p-6 hidden border-none md:block">
+          <h2 className="text-lg text-gray-300 font-semibold mb-4">
+            Status Timeline
+          </h2>
           <StatusTimeline
             currentStatus={job.status}
             timestamps={{
@@ -571,18 +585,19 @@ export default function JobDetailPage() {
             }}
             showTimestamps
             orientation="horizontal"
+            className="text-gray-400 border-none"
           />
         </Card>
 
         {/* Details Grid */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Timestamps Card */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Card className="p-5 rounded-none md:p-6">
+            <h2 className="text-lg font-semibold mb-4 text-gray-300 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               Timestamps
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-3 text-gray-300">
               <DetailRow
                 label="Created"
                 value={formatDate(job.created_at)}
@@ -624,13 +639,13 @@ export default function JobDetailPage() {
           </Card>
 
           {/* Parameters Card */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Card className="p-5 rounded-none md:p-6">
+            <h2 className="text-lg text-gray-300 font-semibold mb-4 flex items-center gap-2">
               <Settings className="h-5 w-5 text-muted-foreground" />
               Parameters
             </h2>
             {Object.keys(job.parameters).length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 text-gray-300">
                 {formatParameters(job.parameters).map(({ key, value }) => (
                   <DetailRow key={key} label={key} value={value} />
                 ))}
@@ -644,12 +659,12 @@ export default function JobDetailPage() {
         </div>
 
         {/* Files Section */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <Card className="p-5 rounded-none md:p-6">
+          <h2 className="text-lg text-gray-300 font-semibold mb-4 flex items-center gap-2">
             <HardDrive className="h-5 w-5 text-muted-foreground" />
             Files
           </h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid text-gray-300 md:grid-cols-2 gap-4">
             {/* Input File */}
             {job.input_file && (
               <FileCard title="Input File" file={job.input_file} />
@@ -698,14 +713,14 @@ interface DetailRowProps {
 function DetailRow({ label, value, subValue, icon }: DetailRowProps) {
   return (
     <div className="flex justify-between items-start">
-      <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+      <span className="text-[0.95rem] md:text-sm text-gray-400 flex items-center gap-1.5">
         {icon}
         {label}
       </span>
       <div className="text-right">
-        <span className="text-sm font-medium">{value}</span>
+        <span className="text-[0.9rem] md:text-sm font-medium">{value}</span>
         {subValue && (
-          <p className="text-xs text-muted-foreground">{subValue}</p>
+          <p className="text-xs text-gray-400">{subValue}</p>
         )}
       </div>
     </div>
@@ -722,24 +737,28 @@ interface FileCardProps {
 
 function FileCard({ title, file, downloadable, onDownload }: FileCardProps) {
   return (
-    <div className="p-4 bg-muted/50 rounded-lg">
+    <div className="md:p-4 bg-muted/50 rounded-lg">
       <div className="flex items-start justify-between mb-2">
-        <span className="text-sm font-medium text-muted-foreground">
+        <span className="text-base md:text-sm font-medium text-muted-foreground">
           {title}
         </span>
         {downloadable && onDownload && (
-          <Button variant="ghost" size="sm" onClick={onDownload}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDownload}
+            className="cursor-pointer hover:text-gray-800"
+          >
             <Download className="h-4 w-4" />
           </Button>
         )}
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium truncate" title={file.file_name}>
+        <p className="text-[0.9rem] md:text-sm text-gray-400 font-medium truncate" title={file.file_name}>
           {file.file_name}
         </p>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-gray-300">
           <span>{file.file_size_formatted}</span>
-          <span>â€¢</span>
           <span>{file.mime_type}</span>
         </div>
       </div>

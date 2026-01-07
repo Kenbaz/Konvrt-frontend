@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   File,
@@ -16,13 +16,10 @@ import {
     formatFileSize,
     getFileExtension,
     detectMediaType,
-    createFilePreviewUrl,
-    revokeFilePreviewUrl,
     truncateFilename,
     getMediaTypeDisplayName
 } from "@/lib/utils";
 import type { MediaType } from "@/types";
-import Image from "next/image";
 
 export interface FilePreviewProps {
     file: File;
@@ -33,6 +30,38 @@ export interface FilePreviewProps {
     isUploading?: boolean;
     className?: string;
 };
+
+
+function useFilePreviewUrl(file: File, enabled: boolean = true): string | null {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreviewUrl(null);
+      return;
+    }
+
+    let url: string | null = null;
+
+    try {
+      url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    } catch (err) {
+      console.error("Failed to create preview URL:", err);
+      setPreviewUrl(null);
+    }
+
+    // Cleanup: revoke the URL when file changes or component unmounts
+    return () => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [file, enabled]);
+
+  return previewUrl;
+}
 
 
 function MediaTypeIcon({
@@ -57,18 +86,6 @@ function MediaTypeIcon({
 };
 
 
-/**
- * FilePreview Component
- * 
- * Displays information about a selected file including:
- * - File name (truncated if necessary)
- * - File size
- * - File type/extension
- * - Visual preview for images
- * - Media type icon for other files
- * - Actions to remove or replace the file
- */
-
 export function FilePreview({
     file,
     onRemove,
@@ -81,36 +98,21 @@ export function FilePreview({
   const mediaType = detectMediaType(file);
   const extension = getFileExtension(file.name);
 
-//   const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
-  
-  // Create preview URL for images using useMemo
-  const previewUrl = useMemo(() => {
-    if (mediaType !== 'image') {
-      return null;
-    }
-    return createFilePreviewUrl(file);
-  }, [mediaType, file]);
-  
-  // Cleanup effect - revoke object URL when it changes or component unmounts
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        revokeFilePreviewUrl(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-    
+  // Only create preview URL for images
+  const isImage = mediaType === 'image';
+  const previewUrl = useFilePreviewUrl(file, isImage);
 
   // Compact layout
   if (compact) {
     return (
       <div
-        className={`flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 ${className}`}
+        className={`flex items-center gap-3 p-3 bg-[#1a1a1e] rounded-lg border border-gray-900 ${className}`}
       >
         {/* Icon or thumbnail */}
         <div className="shrink-0 h-10 w-10 rounded-md bg-gray-200 flex items-center justify-center overflow-hidden">
           {previewUrl ? (
-            <Image
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
               src={previewUrl}
               alt={file.name}
               className="h-full w-full object-cover"
@@ -142,7 +144,7 @@ export function FilePreview({
           <button
             type="button"
             onClick={onRemove}
-            className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+            className="shrink-0 p-1 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
             aria-label="Remove file"
           >
             <X className="h-4 w-4" />
@@ -155,11 +157,12 @@ export function FilePreview({
     
   // Full layout
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden ${className}`}>
+    <div className={`bg-[#1a1a1e] rounded-lg border border-gray-900 shadow-sm overflow-hidden ${className}`}>
       {/* Preview area */}
-      <div className="relative bg-gray-100 aspect-video flex items-center justify-center">
+      <div className="relative bg-[#1a1a1e] aspect-video flex items-center justify-center">
         {previewUrl ? (
-          <Image
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
             src={previewUrl}
             alt={file.name}
             className="max-h-full max-w-full object-contain"
@@ -225,7 +228,7 @@ export function FilePreview({
               <button
                 type="button"
                 onClick={onReplace}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                className="flex items-center cursor-pointer gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
                 Replace
@@ -235,7 +238,7 @@ export function FilePreview({
               <button
                 type="button"
                 onClick={onRemove}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                className="flex items-center cursor-pointer gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
               >
                 <X className="h-4 w-4" />
                 Remove

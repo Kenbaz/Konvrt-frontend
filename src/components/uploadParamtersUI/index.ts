@@ -47,3 +47,11 @@ export type {
   QualityPresetsProps,
   QualityPresetConfig,
 } from "./QualityPresets";
+
+// Add to existing exports
+export { ImageResizeConfigurator } from "./ImageResizeConfigurator";
+
+export type {
+  ImageResizeValues,
+  ImageDimensions,
+} from "./ImageResizeConfigurator";

@@ -116,29 +116,39 @@ export function getMediaTypeColorClasses(mediaType: MediaType): {
   bg: string;
   text: string;
   border: string;
-  bgHover: string;
+  Hover: string;
+  iconBorderColor: string;
 } {
   const colors: Record<
     MediaType,
-    { bg: string; text: string; border: string; bgHover: string }
+    {
+      bg: string;
+      text: string;
+      border: string;
+      Hover: string;
+      iconBorderColor: string;
+    }
   > = {
     video: {
-      bg: "bg-purple-50",
+      bg: "bg-[#1a1a1e]",
       text: "text-purple-700",
       border: "border-purple-200",
-      bgHover: "hover:bg-purple-100",
+      Hover: "hover:ring-2 hover:ring-purple-700",
+      iconBorderColor: "ring ring-purple-700",
     },
     image: {
-      bg: "bg-blue-50",
+      bg: "bg-[#1a1a1e]",
       text: "text-blue-700",
       border: "border-blue-200",
-      bgHover: "hover:bg-blue-100",
+      Hover: "hover:ring-2 hover:ring-blue-700",
+      iconBorderColor: "ring ring-blue-700",
     },
     audio: {
-      bg: "bg-green-50",
+      bg: "bg-[#1a1a1e]",
       text: "text-green-700",
       border: "border-green-200",
-      bgHover: "hover:bg-green-100",
+      Hover: "hover:ring-2 hover:ring-green-700",
+      iconBorderColor: "ring ring-green-700",
     },
   };
 

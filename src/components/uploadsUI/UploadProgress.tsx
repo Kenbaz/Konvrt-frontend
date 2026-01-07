@@ -44,15 +44,16 @@ export function UploadProgress({
   const isFailed = status === "error";
   const isCancelled = status === "cancelled";
   const isUploading = status === "uploading";
+  const isSaving = status === "saving";
 
   return (
     <div
-      className={`bg-white rounded-lg border shadow-sm overflow-hidden ${className}`}
+      className={`bg-[#1a1a1e] rounded-lg border shadow-sm overflow-hidden ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          {isUploading && (
+          {(isUploading || isSaving) && (
             <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
           )}
           {isComplete && <CheckCircle2 className="h-4 w-4 text-green-500" />}
@@ -60,8 +61,9 @@ export function UploadProgress({
             <AlertCircle className="h-4 w-4 text-red-500" />
           )}
 
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-gray-300">
             {isUploading && "Uploading..."}
+            {isSaving && "Saving to storage..."}
             {isComplete && "Upload Complete"}
             {isFailed && "Upload Failed"}
             {isCancelled && "Upload Cancelled"}
@@ -69,11 +71,11 @@ export function UploadProgress({
         </div>
 
         <div className="flex items-center gap-2">
-          {isUploading && onCancel && (
+          {(isUploading || isSaving) && onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               aria-label="Cancel upload"
             >
               <X className="h-4 w-4" />
@@ -84,7 +86,7 @@ export function UploadProgress({
             <button
               type="button"
               onClick={onDismiss}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
               aria-label="Dismiss"
             >
               <X className="h-4 w-4" />
@@ -97,7 +99,7 @@ export function UploadProgress({
       <div className="px-4 py-3">
         {/* File name */}
         {fileName && (
-          <p className="text-sm text-gray-600 truncate mb-2" title={fileName}>
+          <p className="text-sm text-gray-400 truncate mb-2" title={fileName}>
             {fileName}
           </p>
         )}
@@ -105,7 +107,7 @@ export function UploadProgress({
         {/* Progress bar */}
         {isUploading && (
           <div className="space-y-2">
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-[#1a1a1e] rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${percentage}%` }}
@@ -113,12 +115,12 @@ export function UploadProgress({
             </div>
 
             {/* Progress details */}
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-gray-400">
               <div className="flex items-center gap-3">
                 <span>{percentage}%</span>
                 {progress && (
                   <>
-                    <span>•</span>
+                    {/* <span>â€¢</span> */}
                     <span>
                       {formatFileSize(progress.loaded)} /{" "}
                       {formatFileSize(progress.total)}
@@ -133,13 +135,31 @@ export function UploadProgress({
                 )}
                 {progress && progress.estimatedTimeRemaining !== null && (
                   <>
-                    <span>•</span>
+                    {/* <span>â€¢</span> */}
                     <span>
                       {formatTimeRemaining(progress.estimatedTimeRemaining)}
                     </span>
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Saving to cloud storage state - indeterminate progress */}
+        {isSaving && (
+          <div className="space-y-2">
+            <div className="h-2 bg-[#1a1a1e] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full animate-pulse"
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-400">
+              <span>Finalizing upload to storage...</span>
+              {progress && (
+                <span>{formatFileSize(progress.total)}</span>
+              )}
             </div>
           </div>
         )}
@@ -164,7 +184,7 @@ export function UploadProgress({
               <button
                 type="button"
                 onClick={onRetry}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm cursor-pointer text-blue-600 hover:text-blue-700 font-medium"
               >
                 Try again
               </button>
@@ -174,15 +194,15 @@ export function UploadProgress({
 
         {/* Cancelled state */}
         {isCancelled && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-gray-400">
             <span>Upload was cancelled</span>
             {onRetry && (
               <>
-                <span>•</span>
+                {/* <span>â€¢</span> */}
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-blue-600 cursor-pointer hover:text-blue-700 font-medium"
                 >
                   Try again
                 </button>
@@ -209,7 +229,10 @@ export function UploadProgressCompact({
   onCancel?: () => void;
   className?: string;
 }) {
-  if (status !== "uploading") {
+  const isUploading = status === "uploading";
+  const isSaving = status === "saving";
+
+  if (!isUploading && !isSaving) {
     return null;
   }
 
@@ -222,14 +245,16 @@ export function UploadProgressCompact({
       <div className="flex-1 min-w-0">
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${percentage}%` }}
+            className={`h-full bg-blue-500 rounded-full ${
+              isSaving ? 'animate-pulse' : 'transition-all duration-300 ease-out'
+            }`}
+            style={{ width: `${isSaving ? 100 : percentage}%` }}
           />
         </div>
       </div>
 
-      <span className="text-xs text-gray-500 shrink-0 w-10 text-right">
-        {percentage}%
+      <span className="text-xs text-gray-500 shrink-0 min-w-10 text-right">
+        {isSaving ? "Saving..." : `${percentage}%`}
       </span>
 
       {onCancel && (

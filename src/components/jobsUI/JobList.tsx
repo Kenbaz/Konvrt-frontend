@@ -1,7 +1,7 @@
 // src/components/jobs/JobList.tsx
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback } from "react";
 import { 
   RefreshCw, 
   Inbox,
@@ -10,7 +10,7 @@ import {
 import { JobCard, CompactJobCard } from "./JobCard";
 import { Button } from "../UI/Button";
 import { Card } from "../UI/Card";
-import { Spinner } from "../UI/Spinner";
+// import { Spinner } from "../UI/Spinner";
 import { useRecentJobs } from "@/lib/hooks/useJobs";
 import type { JobListItem, Job } from "@/types";
 import { OperationStatus } from "@/types/common-types";
@@ -34,7 +34,7 @@ export interface JobListProps {
 function JobListComponent({
   limit = 10,
   autoRefresh = true,
-  refreshInterval = 10000, // 10 seconds default
+  refreshInterval = 60000, // 60 seconds default
   onJobClick,
   onDownload,
   onDelete,
@@ -184,12 +184,12 @@ function JobListComponent({
       </div>
 
       {/* Show indicator when background fetching */}
-      {isFetching && !isLoading && (
+      {/* {isFetching && !isLoading && (
         <div className="flex items-center justify-center text-sm text-muted-foreground py-2">
           <Spinner size="sm" className="mr-2" />
           Refreshing...
         </div>
-      )}
+      )} */}
     </div>
   );
 }
@@ -231,9 +231,13 @@ function JobListHeader({
         size="sm"
         onClick={onRefresh}
         disabled={isRefreshing}
-        className="text-muted-foreground"
+        className="text-muted-foreground cursor-pointer hover:text-gray-800"
+        leftIcon={
+          <RefreshCw
+            className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+        }
       >
-        <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
         Refresh
       </Button>
     </div>
@@ -292,8 +296,12 @@ function JobListError({ error, onRetry }: JobListErrorProps) {
         <p className="text-sm text-muted-foreground mb-4">
           {error?.message || "An unexpected error occurred"}
         </p>
-        <Button variant="outline" onClick={onRetry}>
-          <RefreshCw className="h-4 w-4 mr-2" />
+        <Button
+          variant="outline"
+          onClick={onRetry}
+          className="hover:text-gray-800 cursor-pointer"
+          leftIcon={<RefreshCw className="h-4 w-4" />}
+        >
           Try Again
         </Button>
       </div>
@@ -326,13 +334,11 @@ export interface PaginatedJobListProps extends Omit<JobListProps, 'limit'> {
 
 export function PaginatedJobList({
   pageSize = 10,
-  initialPage = 1,
+  // initialPage = 1,
   ...props
 }: PaginatedJobListProps) {
-  const [currentPage, setCurrentPage] = useState(initialPage);
+  // const [currentPage, setCurrentPage] = useState(initialPage);
 
-  // For a paginated list, we'd use the full useJobs hook
-  // This is a placeholder showing the structure - will be enhanced in 6.2
   return (
     <div className="space-y-4">
       <JobList 
@@ -341,7 +347,7 @@ export function PaginatedJobList({
         showHeader={props.showHeader ?? true}
       />
       
-      {/* Pagination would go here - enhanced in future milestone */}
+      {/* Pagination would go here */}
     </div>
   );
 }

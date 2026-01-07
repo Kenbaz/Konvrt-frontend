@@ -2,7 +2,7 @@ import { forwardRef, type HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 
 
-export type CardVariant = 'default' | 'elevated' | 'outlined';
+export type CardVariant = 'default' | 'elevated' | 'outlined' | 'none';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> { 
@@ -26,8 +26,9 @@ export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
 const baseStyles = "rounded-lg";
 
 const variantStyles: Record<CardVariant, string> = {
-  default: "bg-white border border-gray-200",
-  outlined: "bg-transparent border-2 border-gray-300",
+  none: "border-none",
+  default: "bg-[#1a1a1e] border border-[#2a2a2e]",
+  outlined: "bg-[#1a1a1e] border border-[#2a2a2e]",
   elevated: "bg-white shadow-lg",
 };
 
@@ -58,7 +59,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   (
     {
       variant = "default",
-      padding = "md",
+      padding = "sm",
       hoverable = false,
       clickable = false,
       className,
@@ -106,11 +107,13 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
       >
         <div className="flex-1 min-w-0">
           {title && (
-            <h3 className="text-lg font-semibold text-gray-900 truncate">
+            <h3 className="text-lg font-semibold text-[#f4f4f5] truncate">
               {title}
             </h3>
           )}
-          {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+          {subtitle && (
+            <p className="mt-1 text-sm text-[#71717a]">{subtitle}</p>
+          )}
           {children}
         </div>
         {action && <div className="shrink-0">{action}</div>}

@@ -484,68 +484,78 @@ function OperationSection({
     const hasOperations = operations.length > 0;
 
     return (
-        <section aria-labelledby={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-            {/* Section Header */}
-            <div
-                className={`
+      <section
+        aria-labelledby={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}
+      >
+        {/* Section Header */}
+        <div
+          className={`
                     flex items-center gap-2 mb-4
-                    ${onToggleCollapse ? 'cursor-pointer select-none' : ''}
+                    ${onToggleCollapse ? "cursor-pointer select-none" : ""}
                 `}
-                onClick={onToggleCollapse}
-                onKeyDown={(e) => {
-                    if (onToggleCollapse && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        onToggleCollapse();
-                    }
-                }}
-                role={onToggleCollapse ? 'button' : undefined}
-                tabIndex={onToggleCollapse ? 0 : undefined}
-                aria-expanded={onToggleCollapse ? !isCollapsed : undefined}
+          onClick={onToggleCollapse}
+          onKeyDown={(e) => {
+            if (onToggleCollapse && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              onToggleCollapse();
+            }
+          }}
+          role={onToggleCollapse ? "button" : undefined}
+          tabIndex={onToggleCollapse ? 0 : undefined}
+          aria-expanded={onToggleCollapse ? !isCollapsed : undefined}
+        >
+          <SectionIcon
+            mediaType={mediaType}
+            className="w-5 h-5 md:w-6 md:h-6 text-gray-400"
+          />
+          <h2
+            id={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}
+            className="text-lg font-semibold text-[#FFFFFFDE]"
+          >
+            {title}
+          </h2>
+          <span className="text-sm text-gray-400">({operations.length})</span>
+          {onToggleCollapse && (
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform ${
+                isCollapsed ? "" : "rotate-180"
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
             >
-                <SectionIcon mediaType={mediaType} className="w-5 h-5 text-gray-500" />
-                <h2
-                    id={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="text-lg font-semibold text-gray-900"
-                >
-                    {title}
-                </h2>
-                <span className="text-sm text-gray-500">
-                    ({operations.length})
-                </span>
-                {onToggleCollapse && (
-                    <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                )}
-            </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          )}
+        </div>
 
-            {/* Section Content */}
-            {!isCollapsed && (
-                hasOperations ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {operations.map(operation => (
-                            <OperationCard
-                                key={operation.operation_name}
-                                operation={operation}
-                                isSelected={selectedOperation?.operation_name === operation.operation_name}
-                                onSelect={onSelectOperation}
-                                showFullDescription={!showDescriptions ? false : undefined}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-gray-500 italic py-4">
-                        {emptyMessage}
-                    </p>
-                )
-            )}
-        </section>
+        {/* Section Content */}
+        {!isCollapsed &&
+          (hasOperations ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {operations.map((operation) => (
+                <OperationCard
+                  key={operation.operation_name}
+                  operation={operation}
+                  isSelected={
+                    selectedOperation?.operation_name ===
+                    operation.operation_name
+                  }
+                  onSelect={onSelectOperation}
+                  showFullDescription={!showDescriptions ? false : undefined}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic py-4">{emptyMessage}</p>
+          ))}
+      </section>
     );
 };
 

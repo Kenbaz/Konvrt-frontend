@@ -2,16 +2,14 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
-  Search,
-  X,
   Video,
   Image as ImageIcon,
   Music,
   Layers,
 } from "lucide-react";
-import { Input } from "../UI";
+// import { Input } from "../UI";
 import { MediaType } from "@/types";
 
 export type MediaTypeFilter = MediaType | "all";
@@ -67,47 +65,47 @@ function TabIcon({
 
 export function OperationSearch({
   searchQuery,
-  onSearchChange,
+  // onSearchChange,
   mediaTypeFilter,
   onMediaTypeChange,
-  placeholder = "Search operations...",
+  // placeholder = "Search operations...",
   showMediaTypeFilter = true,
   operationCounts,
   className = "",
 }: OperationSearchProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
+  // const inputRef = useRef<HTMLInputElement>(null);
+  // const [isFocused, setIsFocused] = useState(false);
 
-  const handleClearSearch = useCallback(() => {
-    onSearchChange("");
-    inputRef.current?.focus();
-  }, [onSearchChange]);
+  // const handleClearSearch = useCallback(() => {
+  //   onSearchChange("");
+  //   inputRef.current?.focus();
+  // }, [onSearchChange]);
 
   // Handle keyboard shortcut (Cmd/Ctrl + K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+  //       e.preventDefault();
+  //       inputRef.current?.focus();
+  //     }
 
-      if (e.key === "Escape" && isFocused) {
-        if (searchQuery) {
-          handleClearSearch();
-        } else {
-          inputRef.current?.blur();
-        }
-      }
-    };
+  //     if (e.key === "Escape" && isFocused) {
+  //       if (searchQuery) {
+  //         handleClearSearch();
+  //       } else {
+  //         inputRef.current?.blur();
+  //       }
+  //     }
+  //   };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFocused, searchQuery, handleClearSearch]);
+  //   window.addEventListener("keydown", handleKeyDown);
+  //   return () => window.removeEventListener("keydown", handleKeyDown);
+  // }, [isFocused, searchQuery, handleClearSearch]);
 
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Search Input */}
-      <div className="relative">
+      {/* <div className="relative">
         <Input
           ref={inputRef}
           type="text"
@@ -136,12 +134,12 @@ export function OperationSearch({
           size="lg"
           aria-label="Search operations"
         />
-      </div>
+      </div> */}
 
       {/* Media Type Filter Tabs */}
       {showMediaTypeFilter && (
         <div
-          className="flex flex-wrap gap-2"
+          className="grid grid-cols-3 gap-2 md:grid-cols-4"
           role="tablist"
           aria-label="Filter by media type"
         >
@@ -150,40 +148,41 @@ export function OperationSearch({
             const count = operationCounts?.[tab.type];
 
             return (
-              <button
+              <div
                 key={tab.type}
-                type="button"
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => onMediaTypeChange(tab.type)}
                 className={`
-                                    inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                                    text-sm font-medium transition-all duration-150
-                                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                                    flex items-center gap-[8%] px-[8%] py-2 rounded-lg md:justify-between cursor-pointer
+                                     transition-all duration-150
+                                    focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:ring-offset-2
                                     ${
                                       isActive
-                                        ? "bg-blue-600 text-white shadow-sm"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        ? "bg-[#6366f1] text-white shadow-sm"
+                                        : "bg-gray-100 text-gray-700 hover:bg-[#818cf8] hover:text-white "
                                     }
                                 `}
               >
-                <TabIcon type={tab.type} className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <button className="flex items-center gap-2">
+                  <TabIcon type={tab.type} className="w-[30%] h-[30%] md:w-5 md:h-5" />
+                  <span className="text-[80%] md:text-base font-medium">{tab.label}</span>
+                </button>
                 {count !== undefined && (
                   <span
                     className={`
-                                            min-w-5 px-1.5 py-0.5 text-xs rounded-full
+                                            min-w-5 px-1.5 py-0.5 text-xs rounded-full md:text-sm
                                             ${
                                               isActive
-                                                ? "bg-blue-500 text-blue-100"
-                                                : "bg-gray-200 text-gray-600"
+                                                ? "bg-[#6366f1] text-blue-100"
+                                                : "bg-gray-200 text-gray-600 hover:bg-[#818cf8] hover:text-white"
                                             }
                                         `}
                   >
                     {count}
                   </span>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

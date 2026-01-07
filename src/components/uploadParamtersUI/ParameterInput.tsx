@@ -12,35 +12,42 @@
  * - string: Text input
  * - boolean: Checkbox input
  * - choice: Select dropdown with predefined options
+ *
+ * Special parameter handling:
+ * - bitrate: Audio bitrate slider with presets
+ * - quality: Video/Image quality slider with presets
  */
 import { useId, useCallback, type ChangeEvent } from "react";
 import { clsx } from "clsx";
 import { AlertCircle, HelpCircle } from "lucide-react";
 import type {
-    ParameterSchema,
-    IntegerParameterSchema,
-    FloatParameterSchema,
-    StringParameterSchema,
-    BooleanParameterSchema,
-    ChoiceParameterSchema,
+  ParameterSchema,
+  IntegerParameterSchema,
+  FloatParameterSchema,
+  StringParameterSchema,
+  BooleanParameterSchema,
+  ChoiceParameterSchema,
 } from "@/types";
+import {
+  AudioBitrateSlider,
+  VideoQualitySlider,
+  ImageQualitySlider,
+} from "./BitrateSlider";
 
 export interface ParameterInputProps {
-    parameter: ParameterSchema;
-    value: unknown;
-    onChange: (paramName: string, value: unknown) => void;
-    error?: string;
-    disabled?: boolean;
-};
-
+  parameter: ParameterSchema;
+  value: unknown;
+  onChange: (paramName: string, value: unknown) => void;
+  error?: string;
+  disabled?: boolean;
+}
 
 // Base styles for inputs
 const baseInputStyles = clsx(
-  "block w-full rounded-lg border",
-  "bg-white text-gray-900",
-  "placeholder:text-gray-400",
+  "block w-full rounded-lg ring ring-[#1a1a1e] hover:ring-gray-300",
+  "bg-[#1a1a1e] text-gray-300",
+  "placeholder:text-gray-300",
   "transition-colors duration-200",
-  "focus:outline-none focus:ring-2 focus:ring-offset-0",
   "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
   "px-3 py-2 text-sm"
 );
@@ -65,28 +72,27 @@ interface BaseInputProps {
   disabled?: boolean;
   hasError: boolean;
   "aria-describedby"?: string;
-};
+}
 
 interface IntegerInputProps extends BaseInputProps {
   parameter: IntegerParameterSchema;
-};
+}
 
 interface FloatInputProps extends BaseInputProps {
   parameter: FloatParameterSchema;
-};
+}
 
 interface StringInputProps extends BaseInputProps {
   parameter: StringParameterSchema;
-};
+}
 
 interface BooleanInputProps extends BaseInputProps {
   parameter: BooleanParameterSchema;
-};
+}
 
 interface ChoiceInputProps extends BaseInputProps {
   parameter: ChoiceParameterSchema;
-};
-
+}
 
 /**
  * Integer Input Component
@@ -143,8 +149,7 @@ function IntegerInput({
       )}
     />
   );
-};
-
+}
 
 /**
  * Float Input Component
@@ -204,7 +209,7 @@ function FloatInput({
       )}
     />
   );
-};
+}
 
 /**
  * String Input Component
@@ -237,14 +242,16 @@ function StringInput({
       disabled={disabled}
       aria-invalid={hasError}
       aria-describedby={ariaDescribedBy}
-      placeholder={parameter.default ?? `Enter ${formatParamName(parameter.param_name)}`}
+      placeholder={
+        parameter.default ?? `Enter ${formatParamName(parameter.param_name)}`
+      }
       className={clsx(
         baseInputStyles,
         hasError ? inputStateStyles.error : inputStateStyles.default
       )}
     />
   );
-};
+}
 
 /**
  * Boolean Input Component
@@ -290,7 +297,7 @@ function BooleanInput({
       </span>
     </div>
   );
-};
+}
 
 /**
  * Choice Input Component
@@ -307,12 +314,28 @@ function ChoiceInput({
 }: ChoiceInputProps) {
   const handleChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
-      onChange(e.target.value);
+      const selectedValue = e.target.value;
+      // Try to preserve the original type (number vs string)
+      // Check if the choice appears to be a number
+      const numericValue = Number(selectedValue);
+      if (!isNaN(numericValue) && selectedValue !== "") {
+        // Check if the original choices contain numbers
+        const hasNumericChoices = parameter.choices.some(
+          (c) => typeof c === "number"
+        );
+        if (hasNumericChoices) {
+          onChange(numericValue);
+          return;
+        }
+      }
+      onChange(selectedValue);
     },
-    [onChange]
+    [onChange, parameter.choices]
   );
 
-  const displayValue = typeof value === "string" ? value : "";
+  // Convert value to string for display
+  const displayValue =
+    value !== undefined && value !== null ? String(value) : "";
 
   return (
     <div className="relative">
@@ -331,13 +354,15 @@ function ChoiceInput({
       >
         {/* Placeholder option if no default and not required */}
         {!parameter.required && !parameter.default && (
-          <option value="">Select {formatParamName(parameter.param_name)}...</option>
+          <option value="">
+            Select {formatParamName(parameter.param_name)}...
+          </option>
         )}
 
         {/* Choice options */}
         {parameter.choices.map((choice) => (
-          <option key={choice} value={choice}>
-            {formatChoiceLabel(choice)}
+          <option key={String(choice)} value={String(choice)}>
+            {formatChoiceLabel(String(choice), parameter.param_name)}
           </option>
         ))}
       </select>
@@ -345,7 +370,10 @@ function ChoiceInput({
       {/* Dropdown arrow */}
       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
         <svg
-          className={clsx("h-5 w-5", hasError ? "text-red-500" : "text-gray-400")}
+          className={clsx(
+            "h-5 w-5",
+            hasError ? "text-red-500" : "text-gray-300"
+          )}
           viewBox="0 0 20 20"
           fill="currentColor"
           aria-hidden="true"
@@ -359,8 +387,186 @@ function ChoiceInput({
       </div>
     </div>
   );
-};
+}
 
+/**
+ * Check if this is a bitrate parameter that should use the slider
+ */
+function isBitrateParameter(parameter: ParameterSchema): boolean {
+  if (parameter.type !== "choice") return false;
+  if (parameter.param_name !== "bitrate") return false;
+
+  // Verify choices look like bitrate values (e.g., "128k", "192k")
+  const choices = parameter.choices || [];
+  return choices.some(
+    (c) => typeof c === "string" && /^\d+k$/i.test(String(c))
+  );
+}
+
+/**
+ * Check if this is a video quality (CRF) parameter
+ */
+function isVideoQualityParameter(parameter: ParameterSchema): boolean {
+  if (parameter.type !== "integer") return false;
+  if (parameter.param_name !== "quality") return false;
+
+  // CRF values typically range from 0-51, with common range 18-28
+  const min = parameter.min ?? 0;
+  const max = parameter.max ?? 51;
+  return min >= 0 && max <= 51;
+}
+
+/**
+ * Check if this is an image quality parameter
+ */
+function isImageQualityParameter(parameter: ParameterSchema): boolean {
+  if (parameter.type !== "integer") return false;
+  if (parameter.param_name !== "quality") return false;
+
+  // Image quality typically ranges from 1-100
+  const min = parameter.min ?? 1;
+  const max = parameter.max ?? 100;
+  return min >= 1 && max === 100;
+}
+
+/**
+ * Bitrate Slider Input Component
+ * Renders a slider with presets for audio bitrate selection
+ */
+interface BitrateSliderInputProps {
+  parameter: ChoiceParameterSchema;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  disabled?: boolean;
+  hasError: boolean;
+}
+
+function BitrateSliderInput({
+  parameter,
+  value,
+  onChange,
+  disabled,
+  hasError,
+}: BitrateSliderInputProps) {
+  const handleChange = useCallback(
+    (newValue: number | string) => {
+      onChange(newValue);
+    },
+    [onChange]
+  );
+
+  // Convert value for the slider
+  const sliderValue =
+    value !== undefined && value !== null ? value : parameter.default || "192k";
+
+  return (
+    <div className={clsx(hasError && "ring-2 ring-red-500 ring-offset-2 rounded-lg p-2")}>
+      <AudioBitrateSlider
+        value={sliderValue as string | number}
+        onChange={handleChange}
+        disabled={disabled}
+        showPresets={true}
+        showValueLabel={true}
+        label=""
+        helperText={parameter.description}
+      />
+    </div>
+  );
+}
+
+/**
+ * Video Quality Slider Input Component
+ * Renders a CRF slider with presets for video quality selection
+ */
+interface VideoQualitySliderInputProps {
+  parameter: IntegerParameterSchema;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  disabled?: boolean;
+  hasError: boolean;
+}
+
+function VideoQualitySliderInput({
+  parameter,
+  value,
+  onChange,
+  disabled,
+  hasError,
+}: VideoQualitySliderInputProps) {
+  const handleChange = useCallback(
+    (newValue: number | string) => {
+      onChange(typeof newValue === "string" ? parseInt(newValue, 10) : newValue);
+    },
+    [onChange]
+  );
+
+  // Convert value for the slider
+  const sliderValue =
+    value !== undefined && value !== null
+      ? (value as number)
+      : parameter.default || 23;
+
+  return (
+    <div className={clsx(hasError && "ring-2 ring-red-500 ring-offset-2 rounded-lg p-2")}>
+      <VideoQualitySlider
+        value={sliderValue}
+        onChange={handleChange}
+        disabled={disabled}
+        showPresets={true}
+        showValueLabel={true}
+        label="Adjust Quality"
+        helperText={parameter.description}
+      />
+    </div>
+  );
+}
+
+/**
+ * Image Quality Slider Input Component
+ * Renders a quality slider with presets for image quality selection
+ */
+interface ImageQualitySliderInputProps {
+  parameter: IntegerParameterSchema;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  disabled?: boolean;
+  hasError: boolean;
+}
+
+function ImageQualitySliderInput({
+  parameter,
+  value,
+  onChange,
+  disabled,
+  hasError,
+}: ImageQualitySliderInputProps) {
+  const handleChange = useCallback(
+    (newValue: number | string) => {
+      onChange(typeof newValue === "string" ? parseInt(newValue, 10) : newValue);
+    },
+    [onChange]
+  );
+
+  // Convert value for the slider
+  const sliderValue =
+    value !== undefined && value !== null
+      ? (value as number)
+      : parameter.default || 85;
+
+  return (
+    <div className={clsx(hasError && "ring-2 ring-red-500 ring-offset-2 rounded-lg p-2")}>
+      <ImageQualitySlider
+        value={sliderValue}
+        onChange={handleChange}
+        disabled={disabled}
+        showPresets={true}
+        showValueLabel={true}
+        label="Adjust Quality"
+        helperText={parameter.description}
+      />
+    </div>
+  );
+}
 
 /**
  * Main Parameter Input Component
@@ -382,8 +588,8 @@ export function ParameterInput({
   const ariaDescribedBy = hasError
     ? errorId
     : parameter.description
-    ? helperId
-    : undefined;
+      ? helperId
+      : undefined;
 
   // Handle value change from child components
   const handleChange = useCallback(
@@ -393,17 +599,30 @@ export function ParameterInput({
     [onChange, parameter.param_name]
   );
 
-  
   const isBooleanType = parameter.type === "boolean";
 
+  // Check for specialized parameter types
+  const useBitrateSlider =
+    parameter.type === "choice" && isBitrateParameter(parameter);
+  const useVideoQualitySlider =
+    parameter.type === "integer" && isVideoQualityParameter(parameter);
+  const useImageQualitySlider =
+    parameter.type === "integer" &&
+    isImageQualityParameter(parameter) &&
+    !useVideoQualitySlider;
+
+  // For specialized sliders, they have their own labels
+  const useSpecializedSlider =
+    useBitrateSlider || useVideoQualitySlider || useImageQualitySlider;
+
   return (
-    <div className="space-y-1.5">
-      {/* Label - only for non-boolean types */}
-      {!isBooleanType && (
+    <div className={clsx("space-y-1.5", useSpecializedSlider && "col-span-2")}>
+      {/* Label - only for non-boolean types and non-specialized sliders */}
+      {!isBooleanType && !useSpecializedSlider && (
         <div className="flex items-center gap-2">
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-gray-400"
           >
             {formatParamName(parameter.param_name)}
             {parameter.required && (
@@ -416,30 +635,77 @@ export function ParameterInput({
           {/* Help tooltip icon */}
           {parameter.description && (
             <div className="group relative">
-              <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
-              <div className="invisible group-hover:visible absolute z-10 w-64 p-2 mt-1 text-xs text-white bg-gray-900 rounded-md shadow-lg -left-1/2 transform -translate-x-1/4">
+              <HelpCircle className="h-4 w-4 text-gray-300 cursor-help" />
+              <div className="invisible group-hover:visible absolute z-10 w-64 p-2 mt-1 text-xs text-white bg-[#1a1a1e] rounded-md shadow-lg -left-1/2 transform -translate-x-1/4">
                 {parameter.description}
-                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-[#1a1a1e] rotate-45" />
               </div>
             </div>
           )}
         </div>
       )}
 
+      {/* Specialized slider label */}
+      {useSpecializedSlider && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="block text-sm font-medium text-gray-400">
+            {formatParamName(parameter.param_name)}
+            {parameter.required && (
+              <span className="text-red-500 ml-1" aria-hidden="true">
+                *
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Input container */}
       <div className="relative">
-        {/* Route to appropriate input type */}
-        {parameter.type === "integer" && (
-          <IntegerInput
-            id={inputId}
-            parameter={parameter}
+        {/* Specialized inputs */}
+        {useBitrateSlider && (
+          <BitrateSliderInput
+            parameter={parameter as ChoiceParameterSchema}
             value={value}
             onChange={handleChange}
             disabled={disabled}
             hasError={hasError}
-            aria-describedby={ariaDescribedBy}
           />
         )}
+
+        {useVideoQualitySlider && (
+          <VideoQualitySliderInput
+            parameter={parameter as IntegerParameterSchema}
+            value={value}
+            onChange={handleChange}
+            disabled={disabled}
+            hasError={hasError}
+          />
+        )}
+
+        {useImageQualitySlider && (
+          <ImageQualitySliderInput
+            parameter={parameter as IntegerParameterSchema}
+            value={value}
+            onChange={handleChange}
+            disabled={disabled}
+            hasError={hasError}
+          />
+        )}
+
+        {/* Standard inputs */}
+        {parameter.type === "integer" &&
+          !useVideoQualitySlider &&
+          !useImageQualitySlider && (
+            <IntegerInput
+              id={inputId}
+              parameter={parameter}
+              value={value}
+              onChange={handleChange}
+              disabled={disabled}
+              hasError={hasError}
+              aria-describedby={ariaDescribedBy}
+            />
+          )}
 
         {parameter.type === "float" && (
           <FloatInput
@@ -477,7 +743,7 @@ export function ParameterInput({
           />
         )}
 
-        {parameter.type === "choice" && (
+        {parameter.type === "choice" && !useBitrateSlider && (
           <ChoiceInput
             id={inputId}
             parameter={parameter}
@@ -489,8 +755,8 @@ export function ParameterInput({
           />
         )}
 
-        {/* Error icon for non-boolean inputs */}
-        {hasError && !isBooleanType && (
+        {/* Error icon for non-boolean, non-specialized inputs */}
+        {hasError && !isBooleanType && !useSpecializedSlider && (
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
             <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
           </div>
@@ -505,7 +771,7 @@ export function ParameterInput({
       )}
 
       {/* Helper text - range info for numeric types, description for others */}
-      {!hasError && (
+      {!hasError && !useSpecializedSlider && (
         <>
           {(parameter.type === "integer" || parameter.type === "float") &&
             hasRangeInfo(parameter) && (
@@ -524,8 +790,7 @@ export function ParameterInput({
       )}
     </div>
   );
-};
-
+}
 
 // Helper functions
 
@@ -537,19 +802,38 @@ function formatParamName(name: string): string {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-};
+}
 
 /**
  * Format choice value for display
  */
-function formatChoiceLabel(choice: string): string {
+function formatChoiceLabel(choice: string, paramName?: string): string {
+  // Special formatting for specific parameter types
+  if (paramName === "sample_rate") {
+    const num = parseInt(choice, 10);
+    if (!isNaN(num)) {
+      return `${(num / 1000).toFixed(num % 1000 === 0 ? 0 : 3)} kHz`;
+    }
+  }
+
+  if (paramName === "channels") {
+    if (choice === "1") return "Mono (1 channel)";
+    if (choice === "2") return "Stereo (2 channels)";
+  }
+
   // Handle common format patterns
   if (choice.includes("/")) {
     // Keep formats like "video/mp4" as-is but formatted
     return choice;
   }
+
+  // Handle bitrate format
+  if (/^\d+k$/i.test(choice)) {
+    return `${choice.replace("k", "")} kbps`;
+  }
+
   return formatParamName(choice);
-};
+}
 
 /**
  * Check if parameter has range information
@@ -561,7 +845,7 @@ function hasRangeInfo(
     (parameter.min !== null && parameter.min !== undefined) ||
     (parameter.max !== null && parameter.max !== undefined)
   );
-};
+}
 
 /**
  * Get human-readable range text
@@ -582,7 +866,7 @@ function getRangeText(
   }
 
   return parts.join(" • ");
-};
+}
 
 /**
  * Get placeholder text for numeric inputs
@@ -607,7 +891,7 @@ function getPlaceholderText(
   }
 
   return `Enter ${formatParamName(parameter.param_name)}`;
-};
+}
 
 /**
  * Calculate appropriate step for float inputs based on range
@@ -624,8 +908,7 @@ function calculateFloatStep(
     return "any";
   }
   return "any";
-};
-
+}
 
 export {
   IntegerInput,

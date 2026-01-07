@@ -11,7 +11,7 @@
 'use client';
 
 import { Video, Image as ImageIcon, Music, FileQuestion } from "lucide-react";
-import { Card, Badge } from "../UI";
+import { Card } from "../UI";
 import type { OperationDefinition, MediaType } from "@/types";
 import { getOperationDisplayName, getMediaTypeColorClasses } from "@/lib/api/operations";
 
@@ -36,19 +36,19 @@ function MediaTypeIcon({
 }
 
 
-function getMediaTypeBadgeVariant(
-  mediaType: MediaType
-): "default" | "primary" | "success" | "warning" | "danger" | "info" {
-  const variants: Record<
-    MediaType,
-    "default" | "primary" | "success" | "warning" | "danger" | "info"
-  > = {
-    video: "primary",
-    image: "info",
-    audio: "success",
-  };
-  return variants[mediaType] ?? "default";
-};
+// function getMediaTypeBadgeVariant(
+//   mediaType: MediaType
+// ): "default" | "primary" | "success" | "warning" | "danger" | "info" {
+//   const variants: Record<
+//     MediaType,
+//     "default" | "primary" | "success" | "warning" | "danger" | "info"
+//   > = {
+//     video: "primary",
+//     image: "info",
+//     audio: "success",
+//   };
+//   return variants[mediaType] ?? "default";
+// };
 
 
 export interface OperationCardProps { 
@@ -71,7 +71,7 @@ export function OperationCard({
 }: OperationCardProps) {
   const displayName = getOperationDisplayName(operation.operation_name);
   const colorClasses = getMediaTypeColorClasses(operation.media_type);
-  const badgeVariant = getMediaTypeBadgeVariant(operation.media_type);
+  // const badgeVariant = getMediaTypeBadgeVariant(operation.media_type);
 
   const handleClick = () => {
     if (!disabled && onSelect) {
@@ -88,8 +88,8 @@ export function OperationCard({
 
   // Build dynamic class names for selection state
   const selectionClasses = isSelected
-    ? `ring-2 ring-blue-500 ${colorClasses.bg}`
-    : `${colorClasses.bgHover}`;
+    ? `ring-2 ring-[#6366f1] ${colorClasses.bg}`
+    : `${colorClasses.Hover}`;
 
   const disabledClasses = disabled
     ? "opacity-50 cursor-not-allowed"
@@ -97,7 +97,7 @@ export function OperationCard({
 
   return (
     <Card
-      variant={isSelected ? "default" : "outlined"}
+      variant={isSelected ? "none" : "outlined"}
       padding="md"
       className={`
                 transition-all duration-200 ease-in-out
@@ -116,8 +116,8 @@ export function OperationCard({
         {/* Icon */}
         <div
           className={`
-                        shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
-                        ${colorClasses.bg} ${colorClasses.text}
+                        shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
+                        ${colorClasses.bg} ${colorClasses.text} ${colorClasses.iconBorderColor}
                     `}
         >
           <MediaTypeIcon mediaType={operation.media_type} className="w-5 h-5" />
@@ -127,18 +127,16 @@ export function OperationCard({
         <div className="flex-1 min-w-0">
           {/* Header with name and badge */}
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-semibold text-gray-900 truncate">
-              {displayName}
-            </h3>
-            <Badge variant={badgeVariant} size="sm" className="shrink-0">
+            <h3 className="text-sm md:text-base font-semibold truncate">{displayName}</h3>
+            {/* <Badge variant={badgeVariant} size="sm" className="shrink-0">
               {operation.media_type}
-            </Badge>
+            </Badge> */}
           </div>
 
           {/* Description */}
           <p
             className={`
-                            text-sm text-gray-600
+                            text-sm md:text-[0.9rem] text-gray-400
                             ${showFullDescription ? "" : "line-clamp-2"}
                         `}
           >
@@ -147,7 +145,7 @@ export function OperationCard({
 
           {/* Supported formats hint (optional, show on hover or expanded) */}
           {operation.input_formats && operation.input_formats.length > 0 && (
-            <p className="mt-2 text-xs text-gray-400">
+            <p className="mt-2 text-xs text-gray-500">
               Supports: {operation.input_formats.slice(0, 5).join(", ")}
               {operation.input_formats.length > 5 &&
                 ` +${operation.input_formats.length - 5} more`}
@@ -158,7 +156,7 @@ export function OperationCard({
         {/* Selection indicator */}
         {isSelected && (
           <div className="shrink-0">
-            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full bg-[#6366f1] flex items-center justify-center">
               <svg
                 className="w-3 h-3 text-white"
                 fill="currentColor"
@@ -235,59 +233,60 @@ export function OperationCardCompact({
     };
 
     return (
-        <div
-            role="button"
-            tabIndex={disabled ? -1 : 0}
-            onClick={handleClick}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleClick();
-                }
-            }}
-            aria-pressed={isSelected}
-            aria-disabled={disabled}
-            className={`
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        aria-pressed={isSelected}
+        aria-disabled={disabled}
+        className={`
                 flex items-center gap-3 p-3 rounded-lg border transition-all duration-150
-                ${isSelected 
-                    ? `border-blue-500 bg-blue-50 ring-1 ring-blue-500` 
-                    : `border-gray-200 ${colorClasses.bgHover}`
+                ${
+                  isSelected
+                    ? `border-[#6366f1] bg-blue-50 ring-1 ring-[#6366f1]`
+                    : `border-gray-200 ${colorClasses.Hover}`
                 }
-                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                 ${className}
             `.trim()}
-        >
-            <div
-                className={`
+      >
+        <div
+          className={`
                     shrink-0 w-8 h-8 rounded flex items-center justify-center
                     ${colorClasses.bg} ${colorClasses.text}
                 `}
-            >
-                <MediaTypeIcon mediaType={operation.media_type} className="w-4 h-4" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-gray-900 truncate block">
-                    {displayName}
-                </span>
-            </div>
-
-            {isSelected && (
-                <div className="shrink-0 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                    <svg
-                        className="w-2.5 h-2.5 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        aria-hidden="true"
-                    >
-                        <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                </div>
-            )}
+        >
+          <MediaTypeIcon mediaType={operation.media_type} className="w-4 h-4" />
         </div>
+
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-medium text-gray-900 truncate block">
+            {displayName}
+          </span>
+        </div>
+
+        {isSelected && (
+          <div className="shrink-0 w-4 h-4 rounded-full bg-[#6366f1] flex items-center justify-center">
+            <svg
+              className="w-2.5 h-2.5 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+        )}
+      </div>
     );
 };
