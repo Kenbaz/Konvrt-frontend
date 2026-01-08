@@ -1,15 +1,11 @@
-// src/app/page.tsx
-
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { testConnection } from "@/lib/api";
 import { queryKeys, staleTimes } from "@/lib/api/queryClient";
 import { showSuccessToast, showErrorToast } from "@/components/providers";
-import { JobCreationForm } from "@/components/jobsUI/JobCreationForm";
-import { JobList } from "@/components/jobsUI/JobList";
 import { ConfirmDialog, useConfirmDialog } from "@/components/UI/ConfirmDialog";
 import { Button } from "@/components/UI/Button";
 import { Card } from "@/components/UI/Card";
@@ -24,6 +20,55 @@ import { deleteJob, retryJob } from "@/lib/api/jobs";
 import type { ConnectionStatus } from "@/lib/api";
 import type { Job, JobListItem } from "@/types/job-types";
 
+
+const JobCreationForm = lazy(() =>
+  import("@/components/jobsUI/JobCreationForm").then((mod) => ({
+    default: mod.JobCreationForm,
+  }))
+);
+
+const JobList = lazy(() =>
+  import("@/components/jobsUI/JobList").then((mod) => ({
+    default: mod.JobList,
+  }))
+);
+
+// Lightweight loading skeleton for lazy components
+function JobCreationSkeleton() {
+  return (
+    <div className="bg-[#2a2a2e] rounded-xl p-6 space-y-6 animate-pulse">
+      <div className="flex items-center justify-between mb-8">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center">
+            <div className="w-10 h-10 rounded-full bg-[#3a3a3e]" />
+            <div className="hidden sm:block ml-2 h-4 w-20 bg-[#3a3a3e] rounded" />
+            {step < 4 && (
+              <div className="w-8 sm:w-16 h-0.5 mx-2 sm:mx-4 bg-[#3a3a3e]" />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="space-y-4">
+        <div className="h-6 w-48 bg-[#3a3a3e] rounded" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-32 bg-[#1a1a1e] rounded-lg" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JobListSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 bg-[#1a1a1e] rounded-lg" />
+      ))}
+    </div>
+  );
+}
 
 function ConnectionBadge({
   status,
@@ -44,7 +89,6 @@ function ConnectionBadge({
     return (
       <div className="flex items-center gap-2 text-green-600">
         <Wifi className="h-4 w-4" />
-        {/* <span className="text-sm">Connected ({status.latencyMs}ms)</span> */}
       </div>
     );
   }
@@ -65,21 +109,13 @@ function ConnectionBadge({
   );
 }
 
-
 /**
  * Main home page component
  */
 export default function HomePage() {
-  // View mode: "create" shows the form, "jobs" shows the job list
   const [viewMode, setViewMode] = useState<"create" | "jobs">("create");
-
-  // Track the most recently created job for highlighting
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null);
-
-  // Job to delete (for confirmation dialog)
   const [jobToDelete, setJobToDelete] = useState<JobListItem | null>(null);
-
-  // Job to retry (for confirmation dialog)
   const [jobToRetry, setJobToRetry] = useState<JobListItem | null>(null);
 
   const queryClient = useQueryClient();
@@ -97,7 +133,6 @@ export default function HomePage() {
     refetchOnWindowFocus: true,
   });
 
-  // Handle manual connection retry
   const handleRetryConnection = useCallback(async () => {
     const result = await refetch();
     if (result.data?.connected) {
@@ -107,51 +142,28 @@ export default function HomePage() {
     }
   }, [refetch]);
 
-  // Handle job creation success
   const handleJobCreated = useCallback((job: Job) => {
     showSuccessToast(`Job created! ID: ${job.id.slice(0, 8)}...`);
     setHighlightedJobId(job.id);
-
-    // Clear highlight after 10 seconds
-    setTimeout(() => {
-      setHighlightedJobId(null);
-    }, 10000);
+    setTimeout(() => setHighlightedJobId(null), 10000);
   }, []);
 
-  // Handle form cancellation/reset
-  const handleFormCancel = useCallback(() => {
-    // Nothing specific to do here for now
-  }, []);
+  const handleFormCancel = useCallback(() => {}, []);
 
-  // Handle switching to jobs view
-  const handleViewJobs = useCallback(() => {
-    setViewMode("jobs");
-  }, []);
+  const handleViewJobs = useCallback(() => setViewMode("jobs"), []);
+  const handleCreateNew = useCallback(() => setViewMode("create"), []);
 
-  // Handle switching to create view
-  const handleCreateNew = useCallback(() => {
-    setViewMode("create");
-  }, []);
-
-  // Handle job click - could navigate to detail view in the future
   const handleJobClick = useCallback((job: JobListItem) => {
-    // For now, just highlight the job
     setHighlightedJobId(job.id);
-    setTimeout(() => {
-      setHighlightedJobId(null);
-    }, 3000);
+    setTimeout(() => setHighlightedJobId(null), 3000);
   }, []);
 
-  // Confirm delete dialog
   const deleteDialog = useConfirmDialog({
     onConfirm: async () => {
       if (!jobToDelete) return;
-
       try {
         await deleteJob(jobToDelete.id);
         showSuccessToast("Job deleted successfully");
-
-        // Refresh job list
         queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       } catch (error) {
         showErrorToast(
@@ -161,12 +173,9 @@ export default function HomePage() {
         setJobToDelete(null);
       }
     },
-    onCancel: () => {
-      setJobToDelete(null);
-    },
+    onCancel: () => setJobToDelete(null),
   });
 
-  // Handle job deletion
   const handleDeleteJob = useCallback(
     (job: JobListItem) => {
       setJobToDelete(job);
@@ -175,23 +184,15 @@ export default function HomePage() {
     [deleteDialog]
   );
 
-  // Confirm retry dialog
   const retryDialog = useConfirmDialog({
     onConfirm: async () => {
       if (!jobToRetry) return;
-
       try {
         const newJob = await retryJob(jobToRetry.id);
         showSuccessToast(`Job retried! New ID: ${newJob.id.slice(0, 8)}...`);
         setHighlightedJobId(newJob.id);
-
-        // Refresh job list
         queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
-
-        // Clear highlight after a while
-        setTimeout(() => {
-          setHighlightedJobId(null);
-        }, 10000);
+        setTimeout(() => setHighlightedJobId(null), 10000);
       } catch (error) {
         showErrorToast(
           error instanceof Error ? error.message : "Failed to retry job"
@@ -200,18 +201,17 @@ export default function HomePage() {
         setJobToRetry(null);
       }
     },
-    onCancel: () => {
-      setJobToRetry(null);
-    },
+    onCancel: () => setJobToRetry(null),
   });
 
-  // Handle retry job
-  const handleRetryJob = useCallback((job: JobListItem) => {
-    setJobToRetry(job);
-    retryDialog.open()
-  }, [retryDialog]);
+  const handleRetryJob = useCallback(
+    (job: JobListItem) => {
+      setJobToRetry(job);
+      retryDialog.open();
+    },
+    [retryDialog]
+  );
 
-  // Check if backend is available
   const isBackendAvailable = connectionStatus?.connected ?? false;
 
   return (
@@ -224,14 +224,12 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-[#f4f4f5]">Konvrt</h1>
               <p className="text-sm text-[#71717a]">Process Media</p>
             </div>
-            <div className="flex items-center gap-4">
-              <ConnectionBadge
-                status={connectionStatus}
-                isLoading={isCheckingConnection}
-                onRetry={handleRetryConnection}
-                isRetrying={isFetching}
-              />
-            </div>
+            <ConnectionBadge
+              status={connectionStatus}
+              isLoading={isCheckingConnection}
+              onRetry={handleRetryConnection}
+              isRetrying={isFetching}
+            />
           </div>
         </div>
       </header>
@@ -293,7 +291,7 @@ export default function HomePage() {
                 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer
                 ${
                   viewMode === "jobs"
-                    ? "bg-white text-gray-900 shadow-sm"
+                    ? "bg-[#FFFFFFDE] text-gray-900 shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }
               `}
@@ -304,46 +302,47 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Create Job View */}
+        {/* Create Job View - Lazy loaded */}
         {viewMode === "create" && (
-          <>
+          <Suspense fallback={<JobCreationSkeleton />}>
             <JobCreationForm
               onJobCreated={handleJobCreated}
               onCancel={handleFormCancel}
               className=""
             />
-          </>
+          </Suspense>
         )}
 
-        {/* Jobs List View */}
+        {/* Jobs List View - Lazy loaded */}
         {viewMode === "jobs" && (
           <div className="space-y-6">
-            {/* Jobs List Card */}
-            <Card className=" md:p-6 bg-[#2a2a2e]">
-              <JobList
-                limit={20}
-                autoRefresh={true}
-                refreshInterval={60000}
-                onJobClick={handleJobClick}
-                onDelete={handleDeleteJob}
-                onRetry={handleRetryJob}
-                showActions={true}
-                showHeader={true}
-                headerTitle="Your Processing Jobs"
-                highlightedJobId={highlightedJobId ?? undefined}
-              />
+            <Card className="md:p-6 bg-[#2a2a2e]">
+              <Suspense fallback={<JobListSkeleton />}>
+                <JobList
+                  limit={20}
+                  autoRefresh={true}
+                  refreshInterval={60000}
+                  onJobClick={handleJobClick}
+                  onDelete={handleDeleteJob}
+                  onRetry={handleRetryJob}
+                  showActions={true}
+                  showHeader={true}
+                  headerTitle="Your Processing Jobs"
+                  highlightedJobId={highlightedJobId ?? undefined}
+                />
+              </Suspense>
             </Card>
           </div>
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Dialogs */}
       <ConfirmDialog
         {...deleteDialog.dialogProps}
         title="Delete Operation"
         message={
           jobToDelete
-            ? `Are you sure you want to delete this operation? This action cannot be undone.`
+            ? "Are you sure you want to delete this operation? This action cannot be undone."
             : ""
         }
         confirmText="Delete"
@@ -351,13 +350,12 @@ export default function HomePage() {
         variant="danger"
       />
 
-      {/* Retry Confirmation Dialog */}
       <ConfirmDialog
         {...retryDialog.dialogProps}
         title="Retry Operation"
         message={
           jobToRetry
-            ? `Are you sure you want to retry this operation? A new operation will be created with the same parameters.`
+            ? "Are you sure you want to retry this operation? A new operation will be created with the same parameters."
             : ""
         }
         confirmText="Retry"

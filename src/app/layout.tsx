@@ -7,6 +7,16 @@ import { QueryProvider, ToastProvider } from "@/components/providers";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  fallback: [
+    "system-ui",
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "Segoe UI",
+    "Roboto",
+    "sans-serif",
+  ],
 });
 
 
@@ -31,10 +41,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
-  ],
+  themeColor: "#1a1a1a",
 };
 
 export default function RootLayout({
@@ -43,8 +50,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning={true}>
-      <body className={`${inter.variable} min-h-screen overflow-x-hidden bg-[#1a1a1a] antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} font-sans min-h-screen overflow-x-hidden bg-[#1a1a1a] antialiased`}
+      >
         <QueryProvider>
           {children}
           <ToastProvider />

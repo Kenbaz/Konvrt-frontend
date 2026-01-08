@@ -1,5 +1,3 @@
-// src/components/UI/ConfirmDialog.tsx
-
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";

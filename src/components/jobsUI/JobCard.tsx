@@ -1,4 +1,3 @@
-// src/components/jobsUI/JobCard.tsx
 "use client";
 
 import { memo, useCallback, useMemo } from "react";

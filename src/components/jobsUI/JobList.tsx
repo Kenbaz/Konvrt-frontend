@@ -1,4 +1,3 @@
-// src/components/jobs/JobList.tsx
 "use client";
 
 import { memo, useCallback } from "react";

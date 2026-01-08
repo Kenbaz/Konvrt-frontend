@@ -45,6 +45,11 @@ export interface ParsedApiError {
 };
 
 
+// Session storage key and header name
+const SESSION_STORAGE_KEY = 'konvrt_session_id';
+const SESSION_HEADER_NAME = 'X-Session-ID';
+
+
 function getBaseUrl(): string { 
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -57,6 +62,55 @@ function getBaseUrl(): string {
 
 const DEFAULT_TIMEOUT = 30000;
 export const UPLOAD_TIMEOUT = 5 * 60 * 1000;
+
+
+/**
+ * Get the stored session ID from localStorage.
+ * Returns null if not found or if localStorage is unavailable.
+ */
+function getStoredSessionId(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    
+    try {
+        return localStorage.getItem(SESSION_STORAGE_KEY);
+    } catch {
+        return null;
+    }
+}
+
+
+/**
+ * Store the session ID in localStorage.
+ */
+function storeSessionId(sessionId: string): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    
+    try {
+        localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    } catch {
+        console.warn('[API] Unable to store session ID in localStorage');
+    }
+}
+
+
+/**
+ * Clear the stored session ID.
+ */
+export function clearStoredSessionId(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    
+    try {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+        // Ignore errors
+    }
+}
 
 
 function extractValidationErrors(data: ApiErrorResponse | undefined): ApiFieldError[] {
@@ -181,7 +235,7 @@ export function isAxiosError(
 };
 
 
-// Get a user-friendly error message from aby error
+// Get a user-friendly error message from any error
 export function getErrorMessage(error: unknown): string { 
     if (isAxiosError(error)) {
         const parsed = parseApiError(error);
@@ -196,7 +250,7 @@ export function getErrorMessage(error: unknown): string {
           case 401:
             return "Your session has expired. Please refresh the page.";
           case 403:
-            return "You do not have permission to perform this action.";
+            return "You do not have permission to perform this action";
           case 404:
             return "The requested resource was not found.";
           case 408:
@@ -241,9 +295,16 @@ function createAxiosClient(): AxiosInstance {
             if (config.data instanceof FormData) {
                 delete config.headers['Content-Type'];
             };
+            const storedSessionId = getStoredSessionId();
+            if (storedSessionId) {
+                config.headers[SESSION_HEADER_NAME] = storedSessionId;
+            }
 
             if (process.env.NODE_ENV === 'development') {
                 console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+                if (storedSessionId) {
+                    console.log(`[API] Using stored session: ${storedSessionId.substring(0, 8)}...`);
+                }
             };
 
             return config;
@@ -256,8 +317,20 @@ function createAxiosClient(): AxiosInstance {
         }
     );
 
+    // Response interceptor - capture session ID from response headers
     client.interceptors.response.use(
         (response: AxiosResponse) => {
+            const sessionId = response.headers[SESSION_HEADER_NAME.toLowerCase()];
+            if (sessionId && typeof sessionId === 'string') {
+                const currentStoredId = getStoredSessionId();
+                if (sessionId !== currentStoredId) {
+                    storeSessionId(sessionId);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log(`[API] Stored new session ID: ${sessionId.substring(0, 8)}...`);
+                    }
+                }
+            }
+
             if (process.env.NODE_ENV === 'development') {
                 console.log(`[API] Response ${response.status} from ${response.config.url}`);
             }
@@ -272,6 +345,13 @@ function createAxiosClient(): AxiosInstance {
                     data: error.response?.data,
                 });
             };
+
+            if (error.response?.headers) {
+                const sessionId = error.response.headers[SESSION_HEADER_NAME.toLowerCase()];
+                if (sessionId && typeof sessionId === 'string') {
+                    storeSessionId(sessionId);
+                }
+            }
 
             if (error.code === 'ECONNABORTED') {
                 console.error('[API] Request timed out:', error.config?.url);

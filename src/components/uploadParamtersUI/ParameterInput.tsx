@@ -1,5 +1,3 @@
-// src/components/uploadParameterUI/ParameterInput.tsx
-
 /**
  * Parameter Input Component
  *
