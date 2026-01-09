@@ -408,6 +408,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Backend Repository**: [konvrt-backend](https://github.com/your-org/konvrt-backend)
+**Backend Repository**: [konvrt-backend](https://github.com/Kenbaz/konvrt-backend)
 
-**Live Demo**: [https://konvrt.vercel.app](https://konvrt.vercel.app) (Coming Soon)
+**Live Demo**: [https://konvrt.vercel.app](https://konvrt.vercel.app)
