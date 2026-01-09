@@ -214,8 +214,8 @@ The easiest way to deploy is using [Vercel](https://vercel.com):
 5. **Update Backend CORS**
    Add your Vercel URL to the backend's `CORS_ALLOWED_ORIGINS`:
    ```
-   CORS_ALLOWED_ORIGINS=https://your-app.vercel.app
-   CSRF_TRUSTED_ORIGINS=https://your-app.vercel.app
+   CORS_ALLOWED_ORIGINS=https://app.vercel.app
+   CSRF_TRUSTED_ORIGINS=https://app.vercel.app
    ```
 
 ### Deploy via Vercel CLI
