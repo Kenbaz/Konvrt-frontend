@@ -1,5 +1,3 @@
-// src/lib/hooks/useJobPolling.ts
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchJobStatus, fetchJob } from "../api/jobs";

@@ -1,5 +1,3 @@
-// src/components/parameters/ParameterForm.tsx
-
 /**
  * Parameter Form Component
  *

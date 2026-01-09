@@ -1,5 +1,3 @@
-// src/lib/api/index.ts
-
 // Axios client and utilities
 export {
     apiClient,

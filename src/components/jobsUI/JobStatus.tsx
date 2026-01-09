@@ -1,4 +1,3 @@
-// src/components/jobsUI/JobStatus.tsx
 "use client";
 
 import { memo } from "react";

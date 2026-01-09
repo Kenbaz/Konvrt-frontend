@@ -1,4 +1,3 @@
-// src/components/providers/QueryProvider.tsx
 'use client';
 
 import { useState } from "react";

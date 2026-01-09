@@ -1,5 +1,3 @@
-// src/components/uploadParamtersUI/BitrateSlider.tsx
-
 /**
  * Bitrate/Quality Slider Component
  *

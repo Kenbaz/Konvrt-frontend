@@ -1,5 +1,3 @@
-// src/lib/hooks/useOperations.ts
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys, staleTimes } from "../api/queryClient";
 import {

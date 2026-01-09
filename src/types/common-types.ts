@@ -1,5 +1,3 @@
-// src/types/common-types.ts
-
 export const OperationStatus = {
     PENDING: 'pending',
     QUEUED: 'queued',

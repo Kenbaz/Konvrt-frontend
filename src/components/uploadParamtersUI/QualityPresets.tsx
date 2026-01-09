@@ -1,5 +1,3 @@
-// src/components/uploadParametersUI/QualityPresets.tsx
-
 /**
  * Quality Presets Component
  *

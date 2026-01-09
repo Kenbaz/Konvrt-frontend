@@ -1,5 +1,3 @@
-// src/components/uploadsUI/FileUploadZone.tsx
-
 "use client";
 
 import { useCallback, useState, useMemo } from "react";

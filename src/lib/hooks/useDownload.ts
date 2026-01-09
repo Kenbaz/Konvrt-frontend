@@ -1,5 +1,3 @@
-// src/lib/hooks/useDownload.ts
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
     downloadJobOutput,

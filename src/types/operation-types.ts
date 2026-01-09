@@ -1,5 +1,3 @@
-// src/types/operation-types.ts
-
 import type { MediaType, ParameterType, Nullable } from "./common-types";
 
 // Parameter schema types

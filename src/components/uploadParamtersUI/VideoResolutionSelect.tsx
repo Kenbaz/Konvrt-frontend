@@ -1,5 +1,3 @@
-// src/components/uploadParamtersUI/VideoResolutionSelect.tsx
-
 /**
  * Video Resolution Select Component
  *

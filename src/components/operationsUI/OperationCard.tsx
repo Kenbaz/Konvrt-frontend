@@ -1,5 +1,3 @@
-// src/components/operationsUI/OperationCard.tsx
-
 /**
  * Displays a single operation as a selectable card with:
  * - Operation name (formatted for display)

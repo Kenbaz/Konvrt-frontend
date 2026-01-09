@@ -1,5 +1,3 @@
-// src/lib/hooks/useUpload.ts
-
 import { useState, useRef, useCallback } from "react";
 import {
     uploadAndCreateJob,

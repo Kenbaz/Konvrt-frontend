@@ -1,5 +1,3 @@
-// src/lib/api/health.ts
-
 import { apiClient, getErrorMessage } from './axios-client';
 
 export interface HealthCheckResponse {

@@ -1,5 +1,3 @@
-// src/lib/utils/fileHelpers.ts
-
 /**
  * File Helper Utilities
  * 

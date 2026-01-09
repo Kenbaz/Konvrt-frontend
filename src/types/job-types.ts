@@ -1,5 +1,3 @@
-// src/types/job-types.ts
-
 import type {
     UUID,
     ISODateString,

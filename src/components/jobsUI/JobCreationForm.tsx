@@ -1,5 +1,3 @@
-// src/components/jobsUI/JobCreationForm.tsx
-
 /**
  * Job Creation Form Component
  *

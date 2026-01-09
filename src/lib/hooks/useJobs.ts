@@ -1,5 +1,3 @@
-// src/lib/hooks/useJobs.ts
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { fetchJobs, fetchRecentJobs, fetchJobsByStatus } from "../api";

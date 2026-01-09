@@ -1,5 +1,3 @@
-// src/lib/api/operations.ts
-
 import { apiClient } from "./axios-client";
 import {
     OperationDefinition,

@@ -1,5 +1,3 @@
-// src/components/providers/ToastProvider.tsx
-
 import { Toaster, toast, ToastOptions } from 'react-hot-toast';
 
 const defaultToastOptions: ToastOptions = {

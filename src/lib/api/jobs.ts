@@ -1,5 +1,3 @@
-// src/lib/api/jobs.ts
-
 import { apiClient, getErrorMessage } from "./axios-client";
 import { ApiEndpoints } from "@/types/api-types";
 import type {

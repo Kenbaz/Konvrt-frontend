@@ -1,5 +1,3 @@
-// src/lib/api/download.ts
-
 import { apiClient } from "./axios-client";
 import { ApiEndpoints } from "@/types/api-types";
 import type { DownloadOptions } from "@/types/api-types";

@@ -1,6 +1,3 @@
-// src/components/uploadParameterUI/ImageResizeConfigurator.tsx
-
-
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { clsx } from "clsx";
 import {

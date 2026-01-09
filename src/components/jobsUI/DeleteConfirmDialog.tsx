@@ -1,5 +1,3 @@
-// src/components/jobs/DeleteConfirmDialog.tsx
-
 "use client";
 
 import { useCallback } from "react";

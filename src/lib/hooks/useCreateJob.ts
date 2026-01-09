@@ -1,5 +1,3 @@
-// src/lib/hooks/useCreateJob.ts
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { 

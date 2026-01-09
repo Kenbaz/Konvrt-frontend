@@ -1,5 +1,3 @@
-// src/components/uploadsUI/UploadProgress.tsx
-
 "use client";
 
 import { X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";

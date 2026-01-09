@@ -1,4 +1,3 @@
-// src/components/jobsUI/JobProgress.tsx
 "use client";
 
 import { memo, useMemo } from "react";

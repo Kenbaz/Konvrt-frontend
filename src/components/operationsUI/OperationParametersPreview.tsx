@@ -1,5 +1,3 @@
-// src/components/operationsUI/OperationParametersPreview.tsx
-
 "use client";
 
 import {

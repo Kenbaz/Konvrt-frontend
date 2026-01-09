@@ -1,5 +1,3 @@
-// src/components/operationsUI/index.ts
-
 export {
   OperationCard,
   OperationCardSkeleton,

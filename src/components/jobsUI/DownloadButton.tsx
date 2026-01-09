@@ -1,5 +1,3 @@
-// src/components/jobs/DownloadButton.tsx
-
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";

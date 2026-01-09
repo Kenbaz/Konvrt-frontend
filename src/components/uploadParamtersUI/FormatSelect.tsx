@@ -1,5 +1,3 @@
-// src/components/uploadParamtersUI/FormatSelect.tsx
-
 /**
  * Format Select Component
  *

@@ -1,5 +1,3 @@
-// src/components/operationsUI/OperationSelector.tsx
-
 /**
  * Container component that fetches and displays all available operations
  * grouped by media type (video, image, audio).

@@ -1,5 +1,3 @@
-// src/lib/api/upload.ts
-
 import axios, { AxiosProgressEvent } from "axios";
 import { apiClient, UPLOAD_TIMEOUT, parseApiError, isAxiosError } from "./axios-client";
 import { Job, CreateJobParams } from "@/types";

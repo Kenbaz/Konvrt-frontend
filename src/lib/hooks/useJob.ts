@@ -1,5 +1,3 @@
-// src/lib/hooks/useJob.ts
-
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import {

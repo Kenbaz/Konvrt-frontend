@@ -1,5 +1,3 @@
-// src/types/api-types.ts
-
 import type { Nullable, ISODateString } from "./common-types";
 import type { Job, JobListItem, JobStatus } from "./job-types";
 import type { OperationDefinition, OperationDefinitionListItem } from "./operation-types";
